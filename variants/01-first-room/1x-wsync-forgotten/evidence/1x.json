@@ -1,0 +1,59 @@
+{
+ "id": "1x",
+ "step": 1,
+ "kind": "break",
+ "title": "A WSYNC forgotten",
+ "text": "Take out the WSYNC at the top of each course: line A0 starts where line B3 ends, its stores land in the wrong cycles (colours and playfield change in the middle of the lines), and the frame loses a line: 261, and the television loses the picture.",
+ "change": [
+  {
+   "file": "game/src/room_kernel.asm",
+   "line": "k_top:  sta     WSYNC",
+   "becomes": "k_top:"
+  }
+ ],
+ "frames": 48,
+ "until": "40 frames later: nothing moves",
+ "claims": {
+  "timing": false,
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   261
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 1728,
+  "first_window_error": [
+   {
+    "frame": 1,
+    "line": 38,
+    "reg": "COLUPF",
+    "cycle": 50
+   }
+  ],
+  "seam_wrong": 0,
+  "first_ram_difference": null,
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 2,
+  "pictures": 2
+ },
+ "picture_frame": 44,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 3
+}

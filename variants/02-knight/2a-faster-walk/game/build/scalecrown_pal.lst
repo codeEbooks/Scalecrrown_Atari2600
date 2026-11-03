@@ -1,0 +1,2407 @@
+------- FILE scalecrown.asm LEVEL 1 PASS 2
+      1  8000 ????						; scalecrown.asm - Scalecrown
+      2  8000 ????						; Step 2 of the chain of the book: Sir Roderick
+      3  8000 ????						;
+      4  8000 ????						; A 32K cartridge with the Superchip (F4SC): eight banks of
+      5  8000 ????						; 4K and 128 bytes of RAM in the cartridge.
+      6  8000 ????						; Sir Roderick in the room where he comes into the
+      7  8000 ????						; Crypt of Scales, The Broken Gate (dungeon.py).
+      8  8000 ????						; The joystick moves him, the walls stop him, the button
+      9  8000 ????						; thrusts the sword; RESET starts again.
+     10  8000 ????						; The edges of the screen stop him too.
+     11  8000 ????						;
+     12  8000 ????						; Banks (the address of each one for the 6507):
+     13  8000 ????						;   0 ($1000) the room: kernel, figures, colours
+     14  8000 ????						;   1 ($3000) the title: only its tail before step 8
+     15  8000 ????						;   2 ($5000) the throne room: only its tail before
+     16  8000 ????						;	       step 6
+     17  8000 ????						;   3 ($7000) the rooms: their playfield, the copy
+     18  8000 ????						;   4 ($9000) the things: only its tail before step 4
+     19  8000 ????						;   5 ($B000) sound: only its tail before step 7
+     20  8000 ????						;   6 ($D000) the end screens: only its tail before
+     21  8000 ????						;	       step 8
+     22  8000 ????						;   7 ($F000) start, frame, logic, HUD, room tables
+     23  8000 ????						; Every bank starts with the 256 bytes of the Superchip
+     24  8000 ????						; window and ends with the same tail (trampolines, reset).
+     25  8000 ????						;
+     26  8000 ????						;   dasm scalecrown.asm -f3 -S -I../assets/generated
+     27  8000 ????						;	  [-DPAL=1]
+     28  8000 ????
+     29  8000 ????				      processor	6502
+------- FILE hw.asm LEVEL 2 PASS 2
+      0  8000 ????				      include	"hw.asm"
+      1  8000 ????						; hw.asm - the registers Scalecrown uses, by name
+      2  8000 ????						;
+      3  8000 ????						; Written for the game: only the names it needs, with the
+      4  8000 ????						; addresses of the TIA and of the RIOT (6532).
+      5  8000 ????
+      6  8000 ????						; TIA, write side
+      7  8000 ????	       00 00	   VSYNC      =	$00	; bit 1: vertical sync
+      8  8000 ????	       00 01	   VBLANK     =	$01	; bit 1: picture off
+      9  8000 ????	       00 02	   WSYNC      =	$02	; any write: wait for the line end
+     10  8000 ????	       00 04	   NUSIZ0     =	$04	; size and copies, player 0
+     11  8000 ????	       00 06	   COLUP0     =	$06	; colour of player 0
+     12  8000 ????	       00 08	   COLUPF     =	$08	; colour of the playfield
+     13  8000 ????	       00 09	   COLUBK     =	$09	; colour of the background
+     14  8000 ????	       00 0a	   CTRLPF     =	$0A	; bit 0: reflected playfield
+     15  8000 ????	       00 0b	   REFP0      =	$0B	; bit 3: player 0 mirrored
+     16  8000 ????	       00 0d	   PF0	      =	$0D	; playfield, bits 4-7
+     17  8000 ????	       00 0e	   PF1	      =	$0E	; playfield, bits 7-0
+     18  8000 ????	       00 0f	   PF2	      =	$0F	; playfield, bits 0-7
+     19  8000 ????	       00 10	   RESP0      =	$10	; any write: player 0 starts here
+     20  8000 ????	       00 12	   RESM0      =	$12	; any write: missile 0 starts here
+     21  8000 ????	       00 1b	   GRP0       =	$1B	; graphics of player 0
+     22  8000 ????	       00 1d	   ENAM0      =	$1D	; bit 1: missile 0 on
+     23  8000 ????	       00 20	   HMP0       =	$20	; fine move of player 0
+     24  8000 ????	       00 22	   HMM0       =	$22	; fine move of missile 0
+     25  8000 ????	       00 28	   RESMP0     =	$28	; bit 1: missile 0 off, on player 0
+     26  8000 ????	       00 2a	   HMOVE      =	$2A	; any write: apply the fine moves
+     27  8000 ????
+     28  8000 ????						; TIA, read side
+     29  8000 ????	       00 0c	   INPT4      =	$0C	; bit 7: left fire button, 0 = down
+     30  8000 ????
+     31  8000 ????						; RIOT
+     32  8000 ????	       02 80	   SWCHA      =	$0280	; joysticks, 0 = pressed
+     33  8000 ????	       02 82	   SWCHB      =	$0282	; console switches, 0 = pressed
+     34  8000 ????	       02 84	   INTIM      =	$0284	; the timer
+     35  8000 ????	       02 96	   TIM64T     =	$0296	; start the timer, 64 cycles a step
+------- FILE scalecrown.asm
+     31  8000 ????
+     32  8000 ????			  -	      IFNCONST	PAL
+     33  8000 ????			  -PAL	      =	0
+     34  8000 ????				      ENDIF
+     35  8000 ????
+     36  8000 ????				      IF	PAL
+     37  8000 ????	       00 12	   TOP_BLANK  =	18	; black lines above the HUD
+     38  8000 ????	       00 12	   BOT_BLANK  =	18	; and below the room
+     39  8000 ????	       00 36	   VBLANK_TIM =	54
+     40  8000 ????	       00 2b	   OVER_TIM   =	43
+     41  8000 ????			  -	      ELSE
+     42  8000 ????			  -TOP_BLANK  =	0
+     43  8000 ????			  -BOT_BLANK  =	0
+     44  8000 ????			  -VBLANK_TIM =	44
+     45  8000 ????			  -OVER_TIM   =	35
+     46  8000 ????				      ENDIF
+     47  8000 ????
+     48  8000 ????						; F4: an access to $1FF4 + n selects bank n
+     49  8000 ????	       1f f4	   F4B0       =	$1FF4
+     50  8000 ????	       1f f5	   F4B1       =	$1FF5
+     51  8000 ????	       1f f6	   F4B2       =	$1FF6
+     52  8000 ????	       1f f7	   F4B3       =	$1FF7
+     53  8000 ????	       1f f8	   F4B4       =	$1FF8
+     54  8000 ????	       1f f9	   F4B5       =	$1FF9
+     55  8000 ????	       1f fa	   F4B6       =	$1FFA
+     56  8000 ????	       1f fb	   F4B7       =	$1FFB
+     57  8000 ????						; Superchip: written at $1000-$107F, read at $1080-$10FF
+     58  8000 ????	       10 00	   SCW	      =	$1000
+     59  8000 ????	       10 80	   SCR	      =	$1080
+     60  8000 ????	       00 00	   SC_PF0     =	0	; the room: PF0 of the 20 courses,
+     61  8000 ????	       00 14	   SC_PF1     =	20	; course c at index 19 - c
+     62  8000 ????	       00 28	   SC_PF2     =	40
+     63  8000 ????
+     64  8000 ????						; trampolines, the same addresses in every bank
+     65  8000 ????	       1f aa	   TO_ENDS    =	$1FAA	; -> bank 6, ends_kernel
+     66  8000 ????	       1f b0	   TO_THRONE  =	$1FB0	; -> bank 2, throne_kernel
+     67  8000 ????	       1f b6	   TO_THINGS  =	$1FB6	; jsr: bank 4, things, back to 7
+     68  8000 ????	       1f c0	   TO_ROOM    =	$1FC0	; -> bank 0, room_kernel
+     69  8000 ????	       1f c6	   TO_TITLE   =	$1FC6	; -> bank 1, title_kernel
+     70  8000 ????	       1f cc	   TO_MAIN    =	$1FCC	; -> bank 7, kernel_done
+     71  8000 ????	       1f d2	   TO_SOUND   =	$1FD2	; jsr: bank 5, sound, back to 7
+     72  8000 ????	       1f e6	   TO_COPY    =	$1FE6	; jsr: bank 3, room_copy, back
+     73  8000 ????
+     74  8000 ????	       00 03	   FIRST_PIXEL =	3	; a player: first pixel = column + 3
+     75  8000 ????	       00 02	   M_OFFSET   =	2	; a missile: column + 2
+     76  8000 ????	       00 08	   KNIGHT_W   =	8	; Sir Roderick: 8 x 24
+     77  8000 ????	       00 18	   KNIGHT_H   =	24
+     78  8000 ????
+     79  8000 ????						; ---------------------------------------------------------
+     80  8000 ????						; RAM: 128 bytes, $80-$FF, the stack at the top
+     81  8000 ????						;
+     82  8000 ????						; Every variable has one owner, the part of the program
+     83  8000 ????						; that writes it (the others read it); the groups below say
+     84  8000 ????						; which.
+     85  8000 ????
+     86 U00aa ????				      SEG.U	ram
+     87 U0080					      ORG	$80
+     88 U0080							; == state (main.asm): frame, screens, buttons, the game
+     89 U0080		       00	   frames     ds	1	; frame counter
+     90 U0081		       00	   screen     ds	1	; 1-16: a room (room + 1)
+     91 U0082		       00	   shown      ds	1	; the screen set up in the SC
+     92 U0083		       00	   held       ds	1	; buttons down a frame ago
+     93 U0084		       00	   pressed    ds	1	; pressed now: fire $80, SELECT $02,
+     94 U0085							; RESET $01
+     95 U0085		       00	   room       ds	1	; 0-15: level room / 4 + 1
+     96 U0086							; == Sir Roderick (knight.asm)
+     97 U0086		       00	   kx	      ds	1	; column, 0-149
+     98 U0087		       00	   ky	      ds	1	; top line, odd, 1-135
+     99 U0088		       00	   kdir       ds	1	; 0 right, 8 left (REFP0)
+    100 U0089		       00	   kpose      ds	1	; 0 stand, 1-2 steps, 3 thrust
+    101 U008a		       00	   kdist      ds	1	; units walked: pose of the walk
+    102 U008b		       00	   hacc       ds	1	; fraction of a step: sideways,
+    103 U008c		       00	   vacc       ds	1	; up and down
+    104 U008d		       00	   thrust     ds	1	; frames of the thrust still to go
+    105 U008e		       00	   moved      ds	1	; he moved in this frame
+    106 U008f		       00	   swx	      ds	1	; the blade: column, NUSIZ0, RESMP0
+    107 U0090		       00	   swnus      ds	1
+    108 U0091		       00	   swres      ds	1
+    109 U0092							; == the collision test (knight.asm: box_free, wall)
+    110 U0092		       00 00	   cmap       ds	2	; collision map of the room
+    111 U0094							; (main.asm: room_state)
+    112 U0094		       00	   nx	      ds	1	; the box tried: column, top line
+    113 U0095		       00	   ny	      ds	1
+    114 U0096		       00	   bc0	      ds	1	; its block columns, left, right
+    115 U0097		       00	   bc1	      ds	1
+    116 U0098		       00	   br	      ds	1	; 3 x the block row tested (its
+    117 U0099							; first byte in the map)
+    118 U0099							; == the kernels (main.asm prepares; room_kernel.asm)
+    119 U0099		       00 00	   kgfx       ds	2	; Sir Roderick: graphics, colours
+    120 U009b		       00 00	   kcol       ds	2
+    121 U009d		       00 00	   cbk	      ds	2	; room colours: COLUBK, COLUPF
+    122 U009f		       00 00	   cpf	      ds	2
+    123 U00a1		       00	   zbk	      ds	1	; COLUBK of the next line A
+    124 U00a2		       00	   zt	      ds	1	; colour for Y at the end of a line
+    125 U00a3		       00	   idx	      ds	1	; index of the line being prepared
+    126 U00a4		       00	   trow       ds	1	; Superchip index of the next course
+    127 U00a5		       00	   znpf0      ds	1	; PF0, PF1, PF2 of the next course
+    128 U00a6		       00	   znpf1      ds	1
+    129 U00a7		       00	   znpf2      ds	1
+    130 U00a8							; == scratch (anyone; never kept across a call)
+    131 U00a8		       00 00	   tmp	      ds	2
+    132 U00aa				   ram_end
+    133 U00aa
+    134 U00aa							; ---------------------------------------------------------
+    135 U00aa							; the banks
+    136 U00aa
+    137 U00aa					      MAC	bank
+    138 U00aa					      SEG	bank{1}
+    139 U00aa					      ORG	{1}*$1000
+    140 U00aa					      RORG	$1000+{1}*$2000
+    141 U00aa					      ds	256, 0	; the Superchip window
+    142 U00aa					      ENDM		; {1}: bank number
+    143 U00aa
+    144 U00aa					      MAC	tail
+    145 U00aa					      ORG	{1}*$1000+$FAA
+    146 U00aa					      RORG	$1FAA+{1}*$2000
+    147 U00aa					      sta	F4B6	; $FAA: to the end screens
+    148 U00aa					      jmp	ends_kernel
+    149 U00aa					      sta	F4B2	; $FB0: to the throne kernel
+    150 U00aa					      jmp	throne_kernel
+    151 U00aa					      sta	F4B4	; $FB6: (jsr here) bank 4
+    152 U00aa					      jsr	things	; $FB9: in bank 4
+    153 U00aa					      sta	F4B7	; $FBC: bank 7 again
+    154 U00aa					      rts		; $FBF: in bank 7
+    155 U00aa					      sta	F4B0	; $FC0: to the room kernel
+    156 U00aa					      jmp	room_kernel
+    157 U00aa					      sta	F4B1	; $FC6: to the title kernel
+    158 U00aa					      jmp	title_kernel
+    159 U00aa					      sta	F4B7	; $FCC: back to the frame
+    160 U00aa					      jmp	kernel_done
+    161 U00aa					      sta	F4B5	; $FD2: (jsr here) bank 5
+    162 U00aa					      jsr	sound	; $FD5: in bank 5
+    163 U00aa					      sta	F4B7	; $FD8: bank 7 again
+    164 U00aa					      rts		; $FDB: in bank 7
+    165 U00aa					      ORG	{1}*$1000+$FE0
+    166 U00aa					      RORG	$1FE0+{1}*$2000
+    167 U00aa					      sta	F4B7	; $FE0: reset, in any bank
+    168 U00aa					      jmp	start
+    169 U00aa					      sta	F4B3	; $FE6: (jsr here) bank 3
+    170 U00aa					      jsr	room_copy	; $FE9: in bank 3
+    171 U00aa					      sta	F4B7	; $FEC: bank 7 again
+    172 U00aa					      rts		; $FEF: in bank 7
+    173 U00aa					      ORG	{1}*$1000+$FFC
+    174 U00aa					      RORG	$1FFC+{1}*$2000
+    175 U00aa					      .word	$1FE0+{1}*$2000
+    176 U00aa					      .word	$1FE0+{1}*$2000
+    177 U00aa					      ENDM		; {1}: bank number
+    178 U00aa
+    179 U00aa							; A bank whose code comes in a later step has only its
+    180 U00aa							; tail, and the routine its trampoline goes to is a stub:
+    181 U00aa							; never called before that step.
+    182 U00aa
+    183 U00aa							; --- bank 0: the room -------------------------------------
+      0 U00aa					      BANK	0
+      1  1000 ????				      SEG	bank0
+      2  0000					      ORG	0*$1000
+      3  0000					      RORG	$1000+0*$2000
+      4  0000		       00 00 00 00*	      ds	256, 0
+------- FILE kfig0.asm LEVEL 2 PASS 2
+      0  0100					      include	"kfig0.asm"
+      1  0100							; generated by build_assets.py - Sir Roderick for bank 0
+      2  0100
+      3  0100							; his figures and the colours of the thrust (they
+      4  0100							; also switch the blade)
+      5  0100				  -	      IF	!PAL
+      6  0100				  -			; KFG: bottom first; between them only the zeros
+      7  0100				  -			; that the lines each one is read at need (zeros
+      8  0100				  -			; below it, above it):
+      9  0100				  -			;   knight_stand (135, 135)
+     10  0100				  -			;   knight_walk1 (135, 135)
+     11  0100				  -			;   knight_walk2 (135, 135)
+     12  0100				  -			;   knight_thrust (135, 135)
+     13  0100				  -			;   the colours of the thrust (135, 135)
+     14  0100				  -KFG
+     15  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     16  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     17  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     18  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     19  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     20  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     21  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     22  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     23  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     24  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     25  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     26  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     27  0100				  -	      .byte	$00,$00,$00,$E7,$66,$66,$66,$7E,$3C,$3C,$3E
+     28  0100				  -	      .byte	$1E,$9E,$9F,$DE,$7E,$3C,$18,$3C,$7E,$72,$7E
+     29  0100				  -	      .byte	$7C,$38,$60,$38,$18,$00,$00,$00,$00,$00,$00
+     30  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     31  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     32  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     33  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     34  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     35  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     36  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     37  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     38  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     39  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     40  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     41  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$E1,$C1,$C3
+     42  0100				  -	      .byte	$C3,$7E,$3C,$3C,$3E,$1E,$9E,$9F,$DE,$7E,$3C
+     43  0100				  -	      .byte	$18,$3C,$7E,$72,$7E,$7C,$38,$60,$38,$18,$00
+     44  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     45  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     46  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     47  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     48  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     49  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     50  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     51  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     52  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     53  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     54  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     55  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     56  0100				  -	      .byte	$00,$00,$3C,$1C,$18,$18,$3C,$3C,$3C,$3E,$1E
+     57  0100				  -	      .byte	$9E,$9F,$DE,$7E,$3C,$18,$3C,$7E,$72,$7E,$7C
+     58  0100				  -	      .byte	$38,$60,$38,$18,$00,$00,$00,$00,$00,$00,$00
+     59  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     60  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     61  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     62  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     63  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     64  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     65  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     66  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     67  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     68  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     69  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     70  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$E1,$C1,$C3,$C3
+     71  0100				  -	      .byte	$7E,$3C,$3C,$3E,$1E,$9E,$9F,$DF,$7E,$3C,$18
+     72  0100				  -	      .byte	$3C,$7E,$72,$7E,$7C,$38,$60,$38,$18,$00,$00
+     73  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     74  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     75  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     76  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     77  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     78  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     79  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     80  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     81  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     82  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     83  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     84  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     85  0100				  -	      .byte	$00,$F4,$F4,$08,$08,$1C,$1C,$F4,$F4,$1C,$1C
+     86  0100				  -	      .byte	$0E,$0E,$1C,$1C,$08,$08,$0C,$0C,$0C,$0C,$44
+     87  0100				  -	      .byte	$44,$44,$44,$00,$00,$00,$00,$00,$00,$00,$00
+     88  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     89  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     90  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     91  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     92  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     93  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     94  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     95  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     96  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     97  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     98  0100				  -	      .byte	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+     99  0100				  -	      .byte	$00,$00,$00,$00,$00,$00
+    100  0100					      ENDIF
+    101  0100					      IF	PAL
+    102  0100							; KFG: bottom first; between them only the zeros
+    103  0100							; that the lines each one is read at need (zeros
+    104  0100							; below it, above it):
+    105  0100							;   knight_stand (135, 135)
+    106  0100							;   knight_walk1 (135, 135)
+    107  0100							;   knight_walk2 (135, 135)
+    108  0100							;   knight_thrust (135, 135)
+    109  0100							;   the colours of the thrust (135, 135)
+    110  0100				   KFG
+    111  0100		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    112  010b		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    113  0116		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    114  0121		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    115  012c		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    116  0137		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    117  0142		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    118  014d		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    119  0158		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    120  0163		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    121  016e		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    122  0179		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    123  0184		       00 00 00 e7*	      .byte.b	$00,$00,$00,$E7,$66,$66,$66,$7E,$3C,$3C,$3E
+    124  018f		       1e 9e 9f de*	      .byte.b	$1E,$9E,$9F,$DE,$7E,$3C,$18,$3C,$7E,$72,$7E
+    125  019a		       7c 38 60 38*	      .byte.b	$7C,$38,$60,$38,$18,$00,$00,$00,$00,$00,$00
+    126  01a5		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    127  01b0		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    128  01bb		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    129  01c6		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    130  01d1		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    131  01dc		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    132  01e7		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    133  01f2		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    134  01fd		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    135  0208		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    136  0213		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    137  021e		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$E1,$C1,$C3
+    138  0229		       c3 7e 3c 3c*	      .byte.b	$C3,$7E,$3C,$3C,$3E,$1E,$9E,$9F,$DE,$7E,$3C
+    139  0234		       18 3c 7e 72*	      .byte.b	$18,$3C,$7E,$72,$7E,$7C,$38,$60,$38,$18,$00
+    140  023f		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    141  024a		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    142  0255		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    143  0260		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    144  026b		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    145  0276		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    146  0281		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    147  028c		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    148  0297		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    149  02a2		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    150  02ad		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    151  02b8		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    152  02c3		       00 00 3c 1c*	      .byte.b	$00,$00,$3C,$1C,$18,$18,$3C,$3C,$3C,$3E,$1E
+    153  02ce		       9e 9f de 7e*	      .byte.b	$9E,$9F,$DE,$7E,$3C,$18,$3C,$7E,$72,$7E,$7C
+    154  02d9		       38 60 38 18*	      .byte.b	$38,$60,$38,$18,$00,$00,$00,$00,$00,$00,$00
+    155  02e4		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    156  02ef		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    157  02fa		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    158  0305		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    159  0310		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    160  031b		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    161  0326		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    162  0331		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    163  033c		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    164  0347		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    165  0352		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    166  035d		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$E1,$C1,$C3,$C3
+    167  0368		       7e 3c 3c 3e*	      .byte.b	$7E,$3C,$3C,$3E,$1E,$9E,$9F,$DF,$7E,$3C,$18
+    168  0373		       3c 7e 72 7e*	      .byte.b	$3C,$7E,$72,$7E,$7C,$38,$60,$38,$18,$00,$00
+    169  037e		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    170  0389		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    171  0394		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    172  039f		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    173  03aa		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    174  03b5		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    175  03c0		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    176  03cb		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    177  03d6		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    178  03e1		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    179  03ec		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    180  03f7		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    181  0402		       00 24 24 e8*	      .byte.b	$00,$24,$24,$E8,$E8,$2C,$2C,$24,$24,$2C,$2C
+    182  040d		       ee ee 2c 2c*	      .byte.b	$EE,$EE,$2C,$2C,$E8,$E8,$EC,$EC,$EC,$EC,$64
+    183  0418		       64 64 64 00*	      .byte.b	$64,$64,$64,$00,$00,$00,$00,$00,$00,$00,$00
+    184  0423		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    185  042e		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    186  0439		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    187  0444		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    188  044f		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    189  045a		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    190  0465		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    191  0470		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    192  047b		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    193  0486		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    194  0491		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+    195  049c		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00
+    196  04a2					      ENDIF
+    197  04a2
+    198  04a2							; the colours of the other poses and of the
+    199  04a2							; flash, bottom first (outside the figure the kernel
+    200  04a2							; reads whatever follows: the graphics there are
+    201  04a2							; zero)
+    202  04a2				  -	      IF	!PAL
+    203  04a2				  -KN_COL0
+    204  04a2				  -	      .byte	$F4,$F4,$08,$08,$1C,$1C,$F4,$F4,$1A,$1A,$1C
+    205  04a2				  -	      .byte	$1C,$1E,$1E,$08,$08,$0C,$0C,$0E,$0E,$42,$42
+    206  04a2				  -	      .byte	$44,$44
+    207  04a2					      ENDIF
+    208  04a2					      IF	PAL
+    209  04a2				   KN_COL0
+    210  04a2		       24 24 0a 0a*	      .byte.b	$24,$24,$0A,$0A,$2A,$2A,$24,$24,$2A,$2A,$2A
+    211  04ad		       2a 2c 2c 0a*	      .byte.b	$2A,$2C,$2C,$0A,$0A,$EC,$EC,$EE,$EE,$62,$62
+    212  04b8		       64 64		      .byte.b	$64,$64
+    213  04ba					      ENDIF
+    214  04ba				   KFG_END
+------- FILE scalecrown.asm
+------- FILE room_kernel.asm LEVEL 2 PASS 2
+      0  04ba					      include	"room_kernel.asm"
+      1  04ba							; room_kernel.asm - bank 0: the room
+      2  04ba							;
+      3  04ba							; Entered from the HUD (hud.asm, bank 7) in HUD line 28,
+      4  04ba							; when Sir Roderick has his column for the room. Lines
+      5  04ba							; 29-31 of the HUD (black) read what the first line of the
+      6  04ba							; room needs; then the 160 lines of the room, BOT_BLANK
+      7  04ba							; black lines (PAL only); then the overscan starts and the
+      8  04ba							; program goes back to bank 7.
+      9  04ba							;
+     10  04ba							; Cycle counts in the comments: the cycle at which a store
+     11  04ba							; writes, counted from 0 at the start of the line; a "+" is
+     12  04ba							; a load that can take one cycle more when its address
+     13  04ba							; crosses a page.
+     14  04ba
+     15  04ba				   room_kernel
+     16  04ba		       85 02		      sta	WSYNC	; HUD line 29
+     17  04bc		       a0 9f		      ldy	#159	; what line A0 of course 0
+     18  04be		       84 a3		      sty	idx	; needs
+     19  04c0		       a9 13		      lda	#19
+     20  04c2		       85 a4		      sta	trow
+     21  04c4		       b1 9d		      lda	(cbk),y	; +
+     22  04c6		       85 a1		      sta	zbk	; COLUBK of pair 0
+     23  04c8		       b1 9f		      lda	(cpf),y	; +
+     24  04ca		       85 a2		      sta	zt	; COLUPF of pair 0
+     25  04cc		       ad 93 10 	      lda	SCR+SC_PF0+19	; course 0
+     26  04cf		       85 a5		      sta	znpf0
+     27  04d1		       ad a7 10 	      lda	SCR+SC_PF1+19
+     28  04d4		       85 a6		      sta	znpf1
+     29  04d6		       ad bb 10 	      lda	SCR+SC_PF2+19
+     30  04d9		       85 a7		      sta	znpf2	; for line A0
+     31  04db		       85 02		      sta	WSYNC	; line 30
+     32  04dd		       b1 99		      lda	(kgfx),y	; +
+     33  04df		       aa		      tax
+     34  04e0		       a4 a2		      ldy	zt
+     35  04e2		       85 02		      sta	WSYNC	; line 31 stays empty
+     36  04e4		       4c e7 14 	      jmp	k_top
+     37  04e7
+     38  04e7							; ---------------------------------------------------------
+     39  04e7							; The room: 20 courses of 8 lines, each four pairs of lines
+     40  04e7							; A and B. Lines A write the playfield colours, lines B the
+     41  04e7							; colour of Sir Roderick; both write his figure.
+     42  04e7							;
+     43  04e7							; At the start of each line (after WSYNC) the registers hold
+     44  04e7							; what the line writes first:
+     45  04e7							;   line A: X = GRP0, Y = COLUPF
+     46  04e7							;   line B: X = GRP0, Y = COLUP0
+     47  04e7							; The rest of the line prepares the next one; idx is the
+     48  04e7							; index (159 at the top) of the line being prepared.
+     49  04e7							; The playfield changes once a course: A1, A2, A3 read the
+     50  04e7							; next course from the Superchip RAM, A0 writes PF0, PF1
+     51  04e7							; and PF2.
+     52  04e7							; Lines B also write the colour of Sir Roderick to ENAM0:
+     53  04e7							; bit 1 of it turns the blade (missile 0) on or off. Only in
+     54  04e7							; the thrust can it show: otherwise RESMP0 keeps it hidden,
+     55  04e7							; and in the thrust the colours are zero outside the figure
+     56  04e7							; and have bit 1 only on the pair of the blade (art.py).
+     57  04e7
+     58  04e7					      MAC	line_a_rest
+     59  04e7					      ldy	idx
+     60  04e7					      dey
+     61  04e7					      sty	idx
+     62  04e7					      lda	(kcol),y	; +
+     63  04e7					      sta	zt
+     64  04e7					      lda	(kgfx),y	; +
+     65  04e7					      tax
+     66  04e7					      ldy	zt
+     67  04e7					      ENDM		; prepares line B
+     68  04e7
+     69  04e7					      MAC	line_b_first
+     70  04e7					      stx	GRP0	;  2
+     71  04e7					      sty	COLUP0	;  5
+     72  04e7					      sty	ENAM0	;  8 the blade: bit 1
+     73  04e7					      ldy	idx
+     74  04e7					      dey
+     75  04e7					      sty	idx
+     76  04e7					      ENDM
+     77  04e7
+     78  04e7					      MAC	line_b_rest
+     79  04e7					      lda	(cbk),y	; +
+     80  04e7					      sta	zbk
+     81  04e7					      lda	(cpf),y	; +
+     82  04e7					      sta	zt
+     83  04e7					      lda	(kgfx),y	; +
+     84  04e7					      tax
+     85  04e7					      ldy	zt
+     86  04e7					      ENDM		; prepares line A
+     87  04e7
+     88  04e7					      MAC	line_a_first
+     89  04e7					      stx	GRP0	;  2
+     90  04e7					      sty	COLUPF	;  5
+     91  04e7					      lda	zbk
+     92  04e7					      sta	COLUBK	; 11
+     93  04e7					      ldx	trow
+     94  04e7					      lda	SCR+{1},x
+     95  04e7					      ENDM		; A1-A3: {1} = SC table
+     96  04e7
+     97  04e7		       85 02	   k_top      sta	WSYNC
+     98  04e9		       86 1b	   k_a0       stx	GRP0	;  2
+     99  04eb		       84 08		      sty	COLUPF	;  5
+    100  04ed		       a5 a1		      lda	zbk
+    101  04ef		       85 09		      sta	COLUBK	; 11
+    102  04f1		       a5 a5		      lda	znpf0
+    103  04f3		       85 0d		      sta	PF0	; 17
+    104  04f5		       a5 a6		      lda	znpf1
+    105  04f7		       85 0e		      sta	PF1	; 23
+    106  04f9		       a5 a7		      lda	znpf2
+    107  04fb		       85 0f		      sta	PF2	; 29
+      0  04fd					      LINE_A_REST
+      1  04fd		       a4 a3		      ldy	idx
+      2  04ff		       88		      dey
+      3  0500		       84 a3		      sty	idx
+      4  0502		       b1 9b		      lda	(kcol),y
+      5  0504		       85 a2		      sta	zt
+      6  0506		       b1 99		      lda	(kgfx),y
+      7  0508		       aa		      tax
+      8  0509		       a4 a2		      ldy	zt
+    109  050b		       85 02		      sta	WSYNC
+      0  050d				   k_b0       LINE_B_FIRST
+      1  050d		       86 1b		      stx	GRP0
+      2  050f		       84 06		      sty	COLUP0
+      3  0511		       84 1d		      sty	ENAM0
+      4  0513		       a4 a3		      ldy	idx
+      5  0515		       88		      dey
+      6  0516		       84 a3		      sty	idx
+      0  0518					      LINE_B_REST
+      1  0518		       b1 9d		      lda	(cbk),y
+      2  051a		       85 a1		      sta	zbk
+      3  051c		       b1 9f		      lda	(cpf),y
+      4  051e		       85 a2		      sta	zt
+      5  0520		       b1 99		      lda	(kgfx),y
+      6  0522		       aa		      tax
+      7  0523		       a4 a2		      ldy	zt
+    112  0525		       c6 a4		      dec	trow	; the next course
+    113  0527		       85 02		      sta	WSYNC
+      0  0529				   k_a1       LINE_A_FIRST	SC_PF0
+      1  0529		       86 1b		      stx	GRP0
+      2  052b		       84 08		      sty	COLUPF
+      3  052d		       a5 a1		      lda	zbk
+      4  052f		       85 09		      sta	COLUBK
+      5  0531		       a6 a4		      ldx	trow
+      6  0533		       bd 80 10 	      lda	SCR+SC_PF0,x
+    115  0536		       85 a5		      sta	znpf0
+      0  0538					      LINE_A_REST
+      1  0538		       a4 a3		      ldy	idx
+      2  053a		       88		      dey
+      3  053b		       84 a3		      sty	idx
+      4  053d		       b1 9b		      lda	(kcol),y
+      5  053f		       85 a2		      sta	zt
+      6  0541		       b1 99		      lda	(kgfx),y
+      7  0543		       aa		      tax
+      8  0544		       a4 a2		      ldy	zt
+    117  0546		       85 02		      sta	WSYNC
+      0  0548				   k_b1       LINE_B_FIRST
+      1  0548		       86 1b		      stx	GRP0
+      2  054a		       84 06		      sty	COLUP0
+      3  054c		       84 1d		      sty	ENAM0
+      4  054e		       a4 a3		      ldy	idx
+      5  0550		       88		      dey
+      6  0551		       84 a3		      sty	idx
+      0  0553					      LINE_B_REST
+      1  0553		       b1 9d		      lda	(cbk),y
+      2  0555		       85 a1		      sta	zbk
+      3  0557		       b1 9f		      lda	(cpf),y
+      4  0559		       85 a2		      sta	zt
+      5  055b		       b1 99		      lda	(kgfx),y
+      6  055d		       aa		      tax
+      7  055e		       a4 a2		      ldy	zt
+    120  0560		       85 02		      sta	WSYNC
+      0  0562				   k_a2       LINE_A_FIRST	SC_PF1
+      1  0562		       86 1b		      stx	GRP0
+      2  0564		       84 08		      sty	COLUPF
+      3  0566		       a5 a1		      lda	zbk
+      4  0568		       85 09		      sta	COLUBK
+      5  056a		       a6 a4		      ldx	trow
+      6  056c		       bd 94 10 	      lda	SCR+SC_PF1,x
+    122  056f		       85 a6		      sta	znpf1
+      0  0571					      LINE_A_REST
+      1  0571		       a4 a3		      ldy	idx
+      2  0573		       88		      dey
+      3  0574		       84 a3		      sty	idx
+      4  0576		       b1 9b		      lda	(kcol),y
+      5  0578		       85 a2		      sta	zt
+      6  057a		       b1 99		      lda	(kgfx),y
+      7  057c		       aa		      tax
+      8  057d		       a4 a2		      ldy	zt
+    124  057f		       85 02		      sta	WSYNC
+      0  0581				   k_b2       LINE_B_FIRST
+      1  0581		       86 1b		      stx	GRP0
+      2  0583		       84 06		      sty	COLUP0
+      3  0585		       84 1d		      sty	ENAM0
+      4  0587		       a4 a3		      ldy	idx
+      5  0589		       88		      dey
+      6  058a		       84 a3		      sty	idx
+    126  058c		       a5 a4		      lda	trow
+    127  058e		       30 49		      bmi	k_last	; past the last course
+      0  0590					      LINE_B_REST
+      1  0590		       b1 9d		      lda	(cbk),y
+      2  0592		       85 a1		      sta	zbk
+      3  0594		       b1 9f		      lda	(cpf),y
+      4  0596		       85 a2		      sta	zt
+      5  0598		       b1 99		      lda	(kgfx),y
+      6  059a		       aa		      tax
+      7  059b		       a4 a2		      ldy	zt
+    129  059d		       85 02		      sta	WSYNC
+      0  059f				   k_a3       LINE_A_FIRST	SC_PF2
+      1  059f		       86 1b		      stx	GRP0
+      2  05a1		       84 08		      sty	COLUPF
+      3  05a3		       a5 a1		      lda	zbk
+      4  05a5		       85 09		      sta	COLUBK
+      5  05a7		       a6 a4		      ldx	trow
+      6  05a9		       bd a8 10 	      lda	SCR+SC_PF2,x
+    131  05ac		       85 a7		      sta	znpf2
+      0  05ae					      LINE_A_REST
+      1  05ae		       a4 a3		      ldy	idx
+      2  05b0		       88		      dey
+      3  05b1		       84 a3		      sty	idx
+      4  05b3		       b1 9b		      lda	(kcol),y
+      5  05b5		       85 a2		      sta	zt
+      6  05b7		       b1 99		      lda	(kgfx),y
+      7  05b9		       aa		      tax
+      8  05ba		       a4 a2		      ldy	zt
+    133  05bc		       85 02		      sta	WSYNC
+      0  05be				   k_b3       LINE_B_FIRST
+      1  05be		       86 1b		      stx	GRP0
+      2  05c0		       84 06		      sty	COLUP0
+      3  05c2		       84 1d		      sty	ENAM0
+      4  05c4		       a4 a3		      ldy	idx
+      5  05c6		       88		      dey
+      6  05c7		       84 a3		      sty	idx
+      0  05c9					      LINE_B_REST
+      1  05c9		       b1 9d		      lda	(cbk),y
+      2  05cb		       85 a1		      sta	zbk
+      3  05cd		       b1 9f		      lda	(cpf),y
+      4  05cf		       85 a2		      sta	zt
+      5  05d1		       b1 99		      lda	(kgfx),y
+      6  05d3		       aa		      tax
+      7  05d4		       a4 a2		      ldy	zt
+    136  05d6		       4c e7 14 	      jmp	k_top
+    137  05d9
+      0  05d9				   k_last     LINE_B_REST		; course 19: lines A3, B3
+      1  05d9		       b1 9d		      lda	(cbk),y
+      2  05db		       85 a1		      sta	zbk
+      3  05dd		       b1 9f		      lda	(cpf),y
+      4  05df		       85 a2		      sta	zt
+      5  05e1		       b1 99		      lda	(kgfx),y
+      6  05e3		       aa		      tax
+      7  05e4		       a4 a2		      ldy	zt
+    139  05e6		       85 02		      sta	WSYNC
+      0  05e8					      LINE_A_FIRST	SC_PF2
+      1  05e8		       86 1b		      stx	GRP0
+      2  05ea		       84 08		      sty	COLUPF
+      3  05ec		       a5 a1		      lda	zbk
+      4  05ee		       85 09		      sta	COLUBK
+      5  05f0		       a6 a4		      ldx	trow
+      6  05f2		       bd a8 10 	      lda	SCR+SC_PF2,x
+      0  05f5					      LINE_A_REST
+      1  05f5		       a4 a3		      ldy	idx
+      2  05f7		       88		      dey
+      3  05f8		       84 a3		      sty	idx
+      4  05fa		       b1 9b		      lda	(kcol),y
+      5  05fc		       85 a2		      sta	zt
+      6  05fe		       b1 99		      lda	(kgfx),y
+      7  0600		       aa		      tax
+      8  0601		       a4 a2		      ldy	zt
+    142  0603		       85 02		      sta	WSYNC
+    143  0605		       86 1b		      stx	GRP0	; last line of the room
+    144  0607		       84 06		      sty	COLUP0
+    145  0609		       84 1d		      sty	ENAM0
+    146  060b		       85 02		      sta	WSYNC
+    147  060d		       a9 00	   k_end      lda	#0	; first line after the room
+    148  060f		       85 09		      sta	COLUBK	;  4 (pixel 0: clock 68)
+    149  0611		       85 1b		      sta	GRP0
+    150  0613		       85 0d		      sta	PF0
+    151  0615		       85 0e		      sta	PF1
+    152  0617		       85 0f		      sta	PF2
+    153  0619		       85 1d		      sta	ENAM0	; the blade off
+    154  061b					      IF	BOT_BLANK
+    155  061b		       a0 12		      ldy	#BOT_BLANK
+    156  061d		       85 02	   k_bot      sta	WSYNC
+    157  061f		       88		      dey
+    158  0620		       d0 fb		      bne	k_bot
+    159  0622					      ENDIF
+    160  0622		       a9 02		      lda	#2
+    161  0624		       85 01		      sta	VBLANK
+    162  0626		       a9 2b		      lda	#OVER_TIM
+    163  0628		       8d 96 02 	      sta	TIM64T
+    164  062b		       4c cc 1f 	      jmp	TO_MAIN
+------- FILE scalecrown.asm
+------- FILE bank0.asm LEVEL 2 PASS 2
+      0  062e					      include	"bank0.asm"
+      1  062e							; generated by build_assets.py - bank 0
+      2  062e
+      3  062e							; colours of the rooms: 160 bytes for a level, COLUBK
+      4  062e							; of pair p at 159-2p and COLUPF at 158-2p; then the
+      5  062e							; floors of the rooms with torches, COLUBK only:
+      6  062e							; level 2 at RC_FLAME, level 4 at RC_FLAME+1
+      7  062e				  -	      IF	!PAL
+      8  062e				  -RC_1_0
+      9  062e				  -	      .byte	$06,$C2,$08,$C2,$08,$C2,$0A,$C2,$06,$C2,$08
+     10  062e				  -	      .byte	$C2,$08,$C2,$0A,$C2,$06,$C2,$08,$C2,$08,$C4
+     11  062e				  -	      .byte	$0A,$C4,$06,$C4,$08,$C4,$08,$C4,$0A,$C4,$06
+     12  062e				  -	      .byte	$C4,$08,$C4,$08,$C4,$0A,$C4,$06,$C4,$08,$C4
+     13  062e				  -	      .byte	$08,$C4,$0A,$C4,$06,$C4,$0A,$C4,$0A,$C4,$0C
+     14  062e				  -	      .byte	$C4,$08,$C4,$0A,$C4,$0A,$C6,$0C,$C6,$08,$C6
+     15  062e				  -	      .byte	$0A,$C6,$0A,$C6,$0C,$C6,$08,$C6,$0A,$C6,$0A
+     16  062e				  -	      .byte	$C6,$0C,$C6,$08,$C6,$0A,$C6,$0A,$C6,$0C,$C6
+     17  062e				  -	      .byte	$08,$C6,$0A,$C6,$0A,$C6,$0C,$C6,$08,$C6,$0A
+     18  062e				  -	      .byte	$C6,$0A,$C4,$0C,$C4,$08,$C4,$0A,$C4,$0A,$C4
+     19  062e				  -	      .byte	$0A,$C4,$06,$C4,$08,$C4,$08,$C4,$0A,$C4,$06
+     20  062e				  -	      .byte	$C4,$08,$C4,$08,$C4,$0A,$C4,$06,$C4,$08,$C4
+     21  062e				  -	      .byte	$08,$C4,$0A,$C4,$06,$C4,$08,$C4,$08,$C2,$0A
+     22  062e				  -	      .byte	$C2,$06,$C2,$08,$C2,$08,$C2,$0A,$C2,$06,$C2
+     23  062e				  -	      .byte	$08,$C2,$08,$C2,$0A,$C2
+     24  062e				  -RC_2_0
+     25  062e				  -	      .byte	$24,$F0,$26,$F0,$26,$F0,$28,$F0,$24,$F0,$26
+     26  062e				  -	      .byte	$F0,$26,$F0,$28,$F0,$24,$F0,$26,$F0,$26,$F0
+     27  062e				  -	      .byte	$28,$F0,$24,$F0,$26,$F0,$26,$F0,$2A,$F2,$26
+     28  062e				  -	      .byte	$F2,$28,$F2,$28,$F2,$2A,$F2,$26,$F2,$28,$F2
+     29  062e				  -	      .byte	$28,$F2,$2A,$F2,$26,$F2,$28,$F2,$28,$F2,$2A
+     30  062e				  -	      .byte	$F2,$26,$F2,$28,$F2,$28,$F2,$2A,$F2,$26,$F2
+     31  062e				  -	      .byte	$28,$F2,$28,$F2,$2A,$F2,$26,$F2,$28,$F2,$28
+     32  062e				  -	      .byte	$F2,$2A,$F2,$26,$F2,$28,$F2,$28,$F2,$2A,$F2
+     33  062e				  -	      .byte	$26,$F2,$2A,$F4,$2A,$F4,$2C,$F4,$28,$F4,$2A
+     34  062e				  -	      .byte	$F4,$2A,$F4,$2C,$F4,$28,$F4,$2A,$F4,$2A,$F4
+     35  062e				  -	      .byte	$2C,$F4,$28,$F4,$2A,$F4,$2A,$F4,$2C,$F4,$28
+     36  062e				  -	      .byte	$F4,$2A,$F4,$2A,$F4,$2C,$F4,$28,$F4,$2A,$F4
+     37  062e				  -	      .byte	$2A,$F4,$2C,$F4,$28,$F4,$2A,$F4,$2A,$F4,$2C
+     38  062e				  -	      .byte	$F4,$28,$F4,$2A,$F4,$2A,$F4,$2A,$F2,$26,$F2
+     39  062e				  -	      .byte	$28,$F2,$28,$F2,$2A,$F2
+     40  062e				  -RC_3_0
+     41  062e				  -	      .byte	$94,$A2,$96,$A2,$96,$A2,$98,$A4,$94,$A2,$96
+     42  062e				  -	      .byte	$A2,$96,$A2,$98,$A4,$94,$A2,$96,$A2,$96,$A4
+     43  062e				  -	      .byte	$98,$A6,$94,$A4,$96,$A4,$96,$A4,$98,$A6,$94
+     44  062e				  -	      .byte	$A4,$96,$A4,$96,$A4,$98,$A6,$94,$A4,$96,$A4
+     45  062e				  -	      .byte	$96,$A4,$98,$A6,$94,$A4,$98,$A4,$98,$A4,$9A
+     46  062e				  -	      .byte	$A6,$96,$A4,$98,$A4,$98,$A6,$9A,$A8,$96,$A6
+     47  062e				  -	      .byte	$98,$A6,$98,$A6,$9A,$A8,$96,$A6,$98,$A6,$98
+     48  062e				  -	      .byte	$A6,$9A,$A8,$96,$A6,$98,$A6,$98,$A6,$9A,$A8
+     49  062e				  -	      .byte	$96,$A6,$98,$A6,$98,$A6,$9A,$A8,$96,$A6,$98
+     50  062e				  -	      .byte	$A6,$98,$A4,$9A,$A6,$96,$A4,$98,$A4,$98,$A4
+     51  062e				  -	      .byte	$98,$A6,$94,$A4,$96,$A4,$96,$A4,$98,$A6,$94
+     52  062e				  -	      .byte	$A4,$96,$A4,$96,$A4,$98,$A6,$94,$A4,$96,$A4
+     53  062e				  -	      .byte	$96,$A4,$98,$A6,$94,$A4,$96,$A4,$96,$A2,$98
+     54  062e				  -	      .byte	$A4,$94,$A2,$96,$A2,$96,$A2,$98,$A4,$94,$A2
+     55  062e				  -	      .byte	$96,$A2,$96,$A2,$98,$A4
+     56  062e				  -RC_3_1
+     57  062e				  -	      .byte	$94,$A2,$96,$A4,$96,$A2,$98,$A2,$94,$A2,$96
+     58  062e				  -	      .byte	$A4,$96,$A2,$98,$A2,$94,$A2,$96,$A4,$96,$A4
+     59  062e				  -	      .byte	$98,$A4,$94,$A4,$96,$A6,$96,$A4,$98,$A4,$94
+     60  062e				  -	      .byte	$A4,$96,$A6,$96,$A4,$98,$A4,$94,$A4,$96,$A6
+     61  062e				  -	      .byte	$96,$A4,$98,$A4,$94,$A4,$98,$A6,$98,$A4,$9A
+     62  062e				  -	      .byte	$A4,$96,$A4,$98,$A6,$98,$A6,$9A,$A6,$96,$A6
+     63  062e				  -	      .byte	$98,$A8,$98,$A6,$9A,$A6,$96,$A6,$98,$A8,$98
+     64  062e				  -	      .byte	$A6,$9A,$A6,$96,$A6,$98,$A8,$98,$A6,$9A,$A6
+     65  062e				  -	      .byte	$96,$A6,$98,$A8,$98,$A6,$9A,$A6,$96,$A6,$98
+     66  062e				  -	      .byte	$A8,$98,$A4,$9A,$A4,$96,$A4,$98,$A6,$98,$A4
+     67  062e				  -	      .byte	$98,$A4,$94,$A4,$96,$A6,$96,$A4,$98,$A4,$94
+     68  062e				  -	      .byte	$A4,$96,$A6,$96,$A4,$98,$A4,$94,$A4,$96,$A6
+     69  062e				  -	      .byte	$96,$A4,$98,$A4,$94,$A4,$96,$A6,$96,$A2,$98
+     70  062e				  -	      .byte	$A2,$94,$A2,$96,$A4,$96,$A2,$98,$A2,$94,$A2
+     71  062e				  -	      .byte	$96,$A4,$96,$A2,$98,$A2
+     72  062e				  -RC_4_0
+     73  062e				  -	      .byte	$62,$40,$64,$40,$64,$40,$66,$40,$62,$40,$64
+     74  062e				  -	      .byte	$40,$64,$40,$66,$40,$62,$40,$64,$40,$64,$40
+     75  062e				  -	      .byte	$66,$40,$62,$40,$64,$40,$64,$40,$68,$42,$64
+     76  062e				  -	      .byte	$42,$66,$42,$66,$42,$68,$42,$64,$42,$66,$42
+     77  062e				  -	      .byte	$66,$42,$68,$42,$64,$42,$66,$42,$66,$42,$68
+     78  062e				  -	      .byte	$42,$64,$42,$66,$42,$66,$42,$68,$42,$64,$42
+     79  062e				  -	      .byte	$66,$42,$66,$42,$68,$42,$64,$42,$66,$42,$66
+     80  062e				  -	      .byte	$42,$68,$42,$64,$42,$66,$42,$66,$42,$68,$42
+     81  062e				  -	      .byte	$64,$42,$68,$44,$68,$44,$6A,$44,$66,$44,$68
+     82  062e				  -	      .byte	$44,$68,$44,$6A,$44,$66,$44,$68,$44,$68,$44
+     83  062e				  -	      .byte	$6A,$44,$66,$44,$68,$44,$68,$44,$6A,$44,$66
+     84  062e				  -	      .byte	$44,$68,$44,$68,$44,$6A,$44,$66,$44,$68,$44
+     85  062e				  -	      .byte	$68,$44,$6A,$44,$66,$44,$68,$44,$68,$44,$6A
+     86  062e				  -	      .byte	$44,$66,$44,$68,$44,$68,$44,$68,$42,$64,$42
+     87  062e				  -	      .byte	$66,$42,$66,$42,$68,$42
+     88  062e				  -RC_FLAME
+     89  062e				  -	      .byte	$00,$F0,$40,$F0,$40,$F0,$40,$F0,$40,$F0,$40
+     90  062e				  -	      .byte	$F0,$40,$F0,$40,$F0,$40,$F0,$40,$F0,$40,$F0
+     91  062e				  -	      .byte	$40,$F0,$40,$F0,$40,$F0,$40,$F0,$40,$F2,$42
+     92  062e				  -	      .byte	$F2,$42,$F2,$42,$F2,$42,$F2,$42,$F2,$42,$F2
+     93  062e				  -	      .byte	$42,$F2,$42,$F2,$42,$F2,$42,$F2,$42,$F2,$42
+     94  062e				  -	      .byte	$F2,$42,$F2,$42,$F2,$42,$F2,$42,$F2,$42,$F2
+     95  062e				  -	      .byte	$42,$F2,$42,$F2,$42,$F2,$42,$F2,$42,$F2,$42
+     96  062e				  -	      .byte	$F2,$42,$F2,$42,$F2,$42,$F2,$42,$F2,$42,$F2
+     97  062e				  -	      .byte	$42,$F2,$42,$F4,$44,$F4,$44,$F4,$44,$F4,$44
+     98  062e				  -	      .byte	$F4,$44,$F4,$44,$F4,$44,$F4,$44,$F4,$44,$F4
+     99  062e				  -	      .byte	$44,$F4,$44,$F4,$44,$F4,$44,$F4,$44,$F4,$44
+    100  062e				  -	      .byte	$F4,$44,$F4,$44,$F4,$44,$F4,$44,$F4,$44,$F4
+    101  062e				  -	      .byte	$44,$F4,$44,$F4,$44,$F4,$44,$F4,$44,$F4,$44
+    102  062e				  -	      .byte	$F4,$44,$1E,$1E,$1C,$1C,$2A,$2A,$38,$38,$36
+    103  062e				  -	      .byte	$36,$44,$44,$42,$42,$40,$40
+    104  062e					      ENDIF
+    105  062e					      IF	PAL
+    106  062e				   RC_1_0
+    107  062e		       08 32 0a 32*	      .byte.b	$08,$32,$0A,$32,$0A,$32,$0C,$32,$08,$32,$0A
+    108  0639		       32 0a 32 0c*	      .byte.b	$32,$0A,$32,$0C,$32,$08,$32,$0A,$32,$0A,$54
+    109  0644		       0c 54 08 54*	      .byte.b	$0C,$54,$08,$54,$0A,$54,$0A,$54,$0C,$54,$08
+    110  064f		       54 0a 54 0a*	      .byte.b	$54,$0A,$54,$0A,$54,$0C,$54,$08,$54,$0A,$54
+    111  065a		       0a 54 0c 54*	      .byte.b	$0A,$54,$0C,$54,$08,$54,$0C,$54,$0C,$54,$EC
+    112  0665		       54 0a 54 0c*	      .byte.b	$54,$0A,$54,$0C,$54,$0C,$56,$EC,$56,$0A,$56
+    113  0670		       0c 56 0c 56*	      .byte.b	$0C,$56,$0C,$56,$EC,$56,$0A,$56,$0C,$56,$0C
+    114  067b		       56 ec 56 0a*	      .byte.b	$56,$EC,$56,$0A,$56,$0C,$56,$0C,$56,$EC,$56
+    115  0686		       0a 56 0c 56*	      .byte.b	$0A,$56,$0C,$56,$0C,$56,$EC,$56,$0A,$56,$0C
+    116  0691		       56 0c 54 ec*	      .byte.b	$56,$0C,$54,$EC,$54,$0A,$54,$0C,$54,$0C,$54
+    117  069c		       0c 54 08 54*	      .byte.b	$0C,$54,$08,$54,$0A,$54,$0A,$54,$0C,$54,$08
+    118  06a7		       54 0a 54 0a*	      .byte.b	$54,$0A,$54,$0A,$54,$0C,$54,$08,$54,$0A,$54
+    119  06b2		       0a 54 0c 54*	      .byte.b	$0A,$54,$0C,$54,$08,$54,$0A,$54,$0A,$32,$0C
+    120  06bd		       32 08 32 0a*	      .byte.b	$32,$08,$32,$0A,$32,$0A,$32,$0C,$32,$08,$32
+    121  06c8		       0a 32 0a 32*	      .byte.b	$0A,$32,$0A,$32,$0C,$32
+    122  06ce				   RC_2_0
+    123  06ce		       44 20 46 20*	      .byte.b	$44,$20,$46,$20,$46,$20,$46,$20,$44,$20,$46
+    124  06d9		       20 46 20 46*	      .byte.b	$20,$46,$20,$46,$20,$44,$20,$46,$20,$46,$20
+    125  06e4		       46 20 44 20*	      .byte.b	$46,$20,$44,$20,$46,$20,$46,$20,$48,$22,$46
+    126  06ef		       22 46 22 46*	      .byte.b	$22,$46,$22,$46,$22,$48,$22,$46,$22,$46,$22
+    127  06fa		       46 22 48 22*	      .byte.b	$46,$22,$48,$22,$46,$22,$46,$22,$46,$22,$48
+    128  0705		       22 46 22 46*	      .byte.b	$22,$46,$22,$46,$22,$46,$22,$48,$22,$46,$22
+    129  0710		       46 22 46 22*	      .byte.b	$46,$22,$46,$22,$48,$22,$46,$22,$46,$22,$46
+    130  071b		       22 48 22 46*	      .byte.b	$22,$48,$22,$46,$22,$46,$22,$46,$22,$48,$22
+    131  0726		       46 22 48 24*	      .byte.b	$46,$22,$48,$24,$48,$24,$2A,$24,$46,$24,$48
+    132  0731		       24 48 24 2a*	      .byte.b	$24,$48,$24,$2A,$24,$46,$24,$48,$24,$48,$24
+    133  073c		       2a 24 46 24*	      .byte.b	$2A,$24,$46,$24,$48,$24,$48,$24,$2A,$24,$46
+    134  0747		       24 48 24 48*	      .byte.b	$24,$48,$24,$48,$24,$2A,$24,$46,$24,$48,$24
+    135  0752		       48 24 2a 24*	      .byte.b	$48,$24,$2A,$24,$46,$24,$48,$24,$48,$24,$2A
+    136  075d		       24 46 24 48*	      .byte.b	$24,$46,$24,$48,$24,$48,$24,$48,$22,$46,$22
+    137  0768		       46 22 46 22*	      .byte.b	$46,$22,$46,$22,$48,$22
+    138  076e				   RC_3_0
+    139  076e		       b4 92 b4 92*	      .byte.b	$B4,$92,$B4,$92,$B4,$92,$B6,$94,$B4,$92,$B4
+    140  0779		       92 b4 92 b6*	      .byte.b	$92,$B4,$92,$B6,$94,$B4,$92,$B4,$92,$B4,$94
+    141  0784		       b6 96 b4 94*	      .byte.b	$B6,$96,$B4,$94,$B4,$94,$B4,$94,$B6,$96,$B4
+    142  078f		       94 b4 94 b4*	      .byte.b	$94,$B4,$94,$B4,$94,$B6,$96,$B4,$94,$B4,$94
+    143  079a		       b4 94 b6 96*	      .byte.b	$B4,$94,$B6,$96,$B4,$94,$B6,$94,$B6,$94,$B8
+    144  07a5		       96 b4 94 b6*	      .byte.b	$96,$B4,$94,$B6,$94,$B6,$96,$B8,$96,$B4,$96
+    145  07b0		       b6 96 b6 96*	      .byte.b	$B6,$96,$B6,$96,$B8,$96,$B4,$96,$B6,$96,$B6
+    146  07bb		       96 b8 96 b4*	      .byte.b	$96,$B8,$96,$B4,$96,$B6,$96,$B6,$96,$B8,$96
+    147  07c6		       b4 96 b6 96*	      .byte.b	$B4,$96,$B6,$96,$B6,$96,$B8,$96,$B4,$96,$B6
+    148  07d1		       96 b6 94 b8*	      .byte.b	$96,$B6,$94,$B8,$96,$B4,$94,$B6,$94,$B6,$94
+    149  07dc		       b6 96 b4 94*	      .byte.b	$B6,$96,$B4,$94,$B4,$94,$B4,$94,$B6,$96,$B4
+    150  07e7		       94 b4 94 b4*	      .byte.b	$94,$B4,$94,$B4,$94,$B6,$96,$B4,$94,$B4,$94
+    151  07f2		       b4 94 b6 96*	      .byte.b	$B4,$94,$B6,$96,$B4,$94,$B4,$94,$B4,$92,$B6
+    152  07fd		       94 b4 92 b4*	      .byte.b	$94,$B4,$92,$B4,$92,$B4,$92,$B6,$94,$B4,$92
+    153  0808		       b4 92 b4 92*	      .byte.b	$B4,$92,$B4,$92,$B6,$94
+    154  080e				   RC_3_1
+    155  080e		       b4 92 b4 94*	      .byte.b	$B4,$92,$B4,$94,$B4,$92,$B6,$92,$B4,$92,$B4
+    156  0819		       94 b4 92 b6*	      .byte.b	$94,$B4,$92,$B6,$92,$B4,$92,$B4,$94,$B4,$94
+    157  0824		       b6 94 b4 94*	      .byte.b	$B6,$94,$B4,$94,$B4,$96,$B4,$94,$B6,$94,$B4
+    158  082f		       94 b4 96 b4*	      .byte.b	$94,$B4,$96,$B4,$94,$B6,$94,$B4,$94,$B4,$96
+    159  083a		       b4 94 b6 94*	      .byte.b	$B4,$94,$B6,$94,$B4,$94,$B6,$96,$B6,$94,$B8
+    160  0845		       94 b4 94 b6*	      .byte.b	$94,$B4,$94,$B6,$96,$B6,$96,$B8,$96,$B4,$96
+    161  0850		       b6 96 b6 96*	      .byte.b	$B6,$96,$B6,$96,$B8,$96,$B4,$96,$B6,$96,$B6
+    162  085b		       96 b8 96 b4*	      .byte.b	$96,$B8,$96,$B4,$96,$B6,$96,$B6,$96,$B8,$96
+    163  0866		       b4 96 b6 96*	      .byte.b	$B4,$96,$B6,$96,$B6,$96,$B8,$96,$B4,$96,$B6
+    164  0871		       96 b6 94 b8*	      .byte.b	$96,$B6,$94,$B8,$94,$B4,$94,$B6,$96,$B6,$94
+    165  087c		       b6 94 b4 94*	      .byte.b	$B6,$94,$B4,$94,$B4,$96,$B4,$94,$B6,$94,$B4
+    166  0887		       94 b4 96 b4*	      .byte.b	$94,$B4,$96,$B4,$94,$B6,$94,$B4,$94,$B4,$96
+    167  0892		       b4 94 b6 94*	      .byte.b	$B4,$94,$B6,$94,$B4,$94,$B4,$96,$B4,$92,$B6
+    168  089d		       92 b4 92 b4*	      .byte.b	$92,$B4,$92,$B4,$94,$B4,$92,$B6,$92,$B4,$92
+    169  08a8		       b4 94 b4 92*	      .byte.b	$B4,$94,$B4,$92,$B6,$92
+    170  08ae				   RC_4_0
+    171  08ae		       a2 62 a4 62*	      .byte.b	$A2,$62,$A4,$62,$A4,$62,$A4,$62,$A2,$62,$A4
+    172  08b9		       62 a4 62 a4*	      .byte.b	$62,$A4,$62,$A4,$62,$A2,$62,$A4,$62,$A4,$62
+    173  08c4		       a4 62 a2 62*	      .byte.b	$A4,$62,$A2,$62,$A4,$62,$A4,$62,$A6,$62,$A4
+    174  08cf		       62 a4 62 a4*	      .byte.b	$62,$A4,$62,$A4,$62,$A6,$62,$A4,$62,$A4,$62
+    175  08da		       a4 62 a6 62*	      .byte.b	$A4,$62,$A6,$62,$A4,$62,$A4,$62,$A4,$62,$A6
+    176  08e5		       62 a4 62 a4*	      .byte.b	$62,$A4,$62,$A4,$62,$A4,$62,$A6,$62,$A4,$62
+    177  08f0		       a4 62 a4 62*	      .byte.b	$A4,$62,$A4,$62,$A6,$62,$A4,$62,$A4,$62,$A4
+    178  08fb		       62 a6 62 a4*	      .byte.b	$62,$A6,$62,$A4,$62,$A4,$62,$A4,$62,$A6,$62
+    179  0906		       a4 62 a6 64*	      .byte.b	$A4,$62,$A6,$64,$A6,$64,$A6,$64,$A4,$64,$A6
+    180  0911		       64 a6 64 a6*	      .byte.b	$64,$A6,$64,$A6,$64,$A4,$64,$A6,$64,$A6,$64
+    181  091c		       a6 64 a4 64*	      .byte.b	$A6,$64,$A4,$64,$A6,$64,$A6,$64,$A6,$64,$A4
+    182  0927		       64 a6 64 a6*	      .byte.b	$64,$A6,$64,$A6,$64,$A6,$64,$A4,$64,$A6,$64
+    183  0932		       a6 64 a6 64*	      .byte.b	$A6,$64,$A6,$64,$A4,$64,$A6,$64,$A6,$64,$A6
+    184  093d		       64 a4 64 a6*	      .byte.b	$64,$A4,$64,$A6,$64,$A6,$64,$A6,$62,$A4,$62
+    185  0948		       a4 62 a4 62*	      .byte.b	$A4,$62,$A4,$62,$A6,$62
+    186  094e				   RC_FLAME
+    187  094e		       00 20 62 20*	      .byte.b	$00,$20,$62,$20,$62,$20,$62,$20,$62,$20,$62
+    188  0959		       20 62 20 62*	      .byte.b	$20,$62,$20,$62,$20,$62,$20,$62,$20,$62,$20
+    189  0964		       62 20 62 20*	      .byte.b	$62,$20,$62,$20,$62,$20,$62,$20,$62,$22,$62
+    190  096f		       22 62 22 62*	      .byte.b	$22,$62,$22,$62,$22,$62,$22,$62,$22,$62,$22
+    191  097a		       62 22 62 22*	      .byte.b	$62,$22,$62,$22,$62,$22,$62,$22,$62,$22,$62
+    192  0985		       22 62 22 62*	      .byte.b	$22,$62,$22,$62,$22,$62,$22,$62,$22,$62,$22
+    193  0990		       62 22 62 22*	      .byte.b	$62,$22,$62,$22,$62,$22,$62,$22,$62,$22,$62
+    194  099b		       22 62 22 62*	      .byte.b	$22,$62,$22,$62,$22,$62,$22,$62,$22,$62,$22
+    195  09a6		       62 22 62 24*	      .byte.b	$62,$22,$62,$24,$64,$24,$64,$24,$64,$24,$64
+    196  09b1		       24 64 24 64*	      .byte.b	$24,$64,$24,$64,$24,$64,$24,$64,$24,$64,$24
+    197  09bc		       64 24 64 24*	      .byte.b	$64,$24,$64,$24,$64,$24,$64,$24,$64,$24,$64
+    198  09c7		       24 64 24 64*	      .byte.b	$24,$64,$24,$64,$24,$64,$24,$64,$24,$64,$24
+    199  09d2		       64 24 64 24*	      .byte.b	$64,$24,$64,$24,$64,$24,$64,$24,$64,$24,$64
+    200  09dd		       24 64 2c 2c*	      .byte.b	$24,$64,$2C,$2C,$2A,$2A,$48,$48,$48,$48,$46
+    201  09e8		       46 64 64 62*	      .byte.b	$46,$64,$64,$62,$62,$62,$62
+    202  09ef					      ENDIF
+    203  09ef
+------- FILE scalecrown.asm
+    188  09ef				   bank0_end
+      0  09ef					      TAIL	0
+      1  0faa					      ORG	0*$1000+$FAA
+      2  0faa					      RORG	$1FAA+0*$2000
+      3  0faa		       8d fa 1f 	      sta	F4B6
+      4  0fad		       4c 00 d1 	      jmp	ends_kernel
+      5  0fb0		       8d f6 1f 	      sta	F4B2
+      6  0fb3		       4c 00 51 	      jmp	throne_kernel
+      7  0fb6		       8d f8 1f 	      sta	F4B4
+      8  0fb9		       20 00 91 	      jsr	things
+      9  0fbc		       8d fb 1f 	      sta	F4B7
+     10  0fbf		       60		      rts
+     11  0fc0		       8d f4 1f 	      sta	F4B0
+     12  0fc3		       4c ba 14 	      jmp	room_kernel
+     13  0fc6		       8d f5 1f 	      sta	F4B1
+     14  0fc9		       4c 00 31 	      jmp	title_kernel
+     15  0fcc		       8d fb 1f 	      sta	F4B7
+     16  0fcf		       4c 16 f1 	      jmp	kernel_done
+     17  0fd2		       8d f9 1f 	      sta	F4B5
+     18  0fd5		       20 00 b1 	      jsr	sound
+     19  0fd8		       8d fb 1f 	      sta	F4B7
+     20  0fdb		       60		      rts
+     21  0fe0					      ORG	0*$1000+$FE0
+     22  0fe0					      RORG	$1FE0+0*$2000
+     23  0fe0		       8d fb 1f 	      sta	F4B7
+     24  0fe3		       4c 00 f1 	      jmp	start
+     25  0fe6		       8d f7 1f 	      sta	F4B3
+     26  0fe9		       20 00 71 	      jsr	room_copy
+     27  0fec		       8d fb 1f 	      sta	F4B7
+     28  0fef		       60		      rts
+     29  0ffc					      ORG	0*$1000+$FFC
+     30  0ffc					      RORG	$1FFC+0*$2000
+     31  0ffc		       e0 1f		      .word.w	$1FE0+0*$2000
+     32  0ffe		       e0 1f		      .word.w	$1FE0+0*$2000
+    190  1000
+    191  1000							; --- bank 1: title ----------------------------------------
+      0  1000					      BANK	1
+      1  2000 ????				      SEG	bank1
+      2  1000					      ORG	1*$1000
+      3  1000					      RORG	$1000+1*$2000
+      4  1000		       00 00 00 00*	      ds	256, 0
+    193  1100				   title_kernel 		; (step 8)
+    194  1100		       4c cc 1f 	      jmp	TO_MAIN
+    195  1103				   bank1_end
+      0  1103					      TAIL	1
+      1  1faa					      ORG	1*$1000+$FAA
+      2  1faa					      RORG	$1FAA+1*$2000
+      3  1faa		       8d fa 1f 	      sta	F4B6
+      4  1fad		       4c 00 d1 	      jmp	ends_kernel
+      5  1fb0		       8d f6 1f 	      sta	F4B2
+      6  1fb3		       4c 00 51 	      jmp	throne_kernel
+      7  1fb6		       8d f8 1f 	      sta	F4B4
+      8  1fb9		       20 00 91 	      jsr	things
+      9  1fbc		       8d fb 1f 	      sta	F4B7
+     10  1fbf		       60		      rts
+     11  1fc0		       8d f4 1f 	      sta	F4B0
+     12  1fc3		       4c ba 14 	      jmp	room_kernel
+     13  1fc6		       8d f5 1f 	      sta	F4B1
+     14  1fc9		       4c 00 31 	      jmp	title_kernel
+     15  1fcc		       8d fb 1f 	      sta	F4B7
+     16  1fcf		       4c 16 f1 	      jmp	kernel_done
+     17  1fd2		       8d f9 1f 	      sta	F4B5
+     18  1fd5		       20 00 b1 	      jsr	sound
+     19  1fd8		       8d fb 1f 	      sta	F4B7
+     20  1fdb		       60		      rts
+     21  1fe0					      ORG	1*$1000+$FE0
+     22  1fe0					      RORG	$1FE0+1*$2000
+     23  1fe0		       8d fb 1f 	      sta	F4B7
+     24  1fe3		       4c 00 f1 	      jmp	start
+     25  1fe6		       8d f7 1f 	      sta	F4B3
+     26  1fe9		       20 00 71 	      jsr	room_copy
+     27  1fec		       8d fb 1f 	      sta	F4B7
+     28  1fef		       60		      rts
+     29  1ffc					      ORG	1*$1000+$FFC
+     30  1ffc					      RORG	$1FFC+1*$2000
+     31  1ffc		       e0 3f		      .word.w	$1FE0+1*$2000
+     32  1ffe		       e0 3f		      .word.w	$1FE0+1*$2000
+    197  2000
+    198  2000							; --- bank 2: the throne room ------------------------------
+      0  2000					      BANK	2
+      1  3000 ????				      SEG	bank2
+      2  2000					      ORG	2*$1000
+      3  2000					      RORG	$1000+2*$2000
+      4  2000		       00 00 00 00*	      ds	256, 0
+    200  2100				   throne_kernel		; (step 6)
+    201  2100		       4c cc 1f 	      jmp	TO_MAIN
+    202  2103				   bank2_end
+      0  2103					      TAIL	2
+      1  2faa					      ORG	2*$1000+$FAA
+      2  2faa					      RORG	$1FAA+2*$2000
+      3  2faa		       8d fa 1f 	      sta	F4B6
+      4  2fad		       4c 00 d1 	      jmp	ends_kernel
+      5  2fb0		       8d f6 1f 	      sta	F4B2
+      6  2fb3		       4c 00 51 	      jmp	throne_kernel
+      7  2fb6		       8d f8 1f 	      sta	F4B4
+      8  2fb9		       20 00 91 	      jsr	things
+      9  2fbc		       8d fb 1f 	      sta	F4B7
+     10  2fbf		       60		      rts
+     11  2fc0		       8d f4 1f 	      sta	F4B0
+     12  2fc3		       4c ba 14 	      jmp	room_kernel
+     13  2fc6		       8d f5 1f 	      sta	F4B1
+     14  2fc9		       4c 00 31 	      jmp	title_kernel
+     15  2fcc		       8d fb 1f 	      sta	F4B7
+     16  2fcf		       4c 16 f1 	      jmp	kernel_done
+     17  2fd2		       8d f9 1f 	      sta	F4B5
+     18  2fd5		       20 00 b1 	      jsr	sound
+     19  2fd8		       8d fb 1f 	      sta	F4B7
+     20  2fdb		       60		      rts
+     21  2fe0					      ORG	2*$1000+$FE0
+     22  2fe0					      RORG	$1FE0+2*$2000
+     23  2fe0		       8d fb 1f 	      sta	F4B7
+     24  2fe3		       4c 00 f1 	      jmp	start
+     25  2fe6		       8d f7 1f 	      sta	F4B3
+     26  2fe9		       20 00 71 	      jsr	room_copy
+     27  2fec		       8d fb 1f 	      sta	F4B7
+     28  2fef		       60		      rts
+     29  2ffc					      ORG	2*$1000+$FFC
+     30  2ffc					      RORG	$1FFC+2*$2000
+     31  2ffc		       e0 5f		      .word.w	$1FE0+2*$2000
+     32  2ffe		       e0 5f		      .word.w	$1FE0+2*$2000
+    204  3000							; --- bank 3: the rooms -----------------------------------
+      0  3000					      BANK	3
+      1  4000 ????				      SEG	bank3
+      2  3000					      ORG	3*$1000
+      3  3000					      RORG	$1000+3*$2000
+      4  3000		       00 00 00 00*	      ds	256, 0
+------- FILE dungeon.asm LEVEL 2 PASS 2
+      0  3100					      include	"dungeon.asm"
+      1  3100							; dungeon.asm - bank 3: the rooms of the dungeon
+      2  3100							;
+      3  3100							; The playfield of the 16 rooms (bank3.asm, from
+      4  3100							; dungeon.py): 60 bytes each, the order of the Superchip
+      5  3100							; RAM (PF0 of the 20 courses, then PF1, then PF2), with the
+      6  3100							; grate closed and the plates of the spikes down.
+      7  3100							; Bank 7 calls room_copy with jsr TO_COPY when Sir Roderick
+      8  3100							; comes into a room; the trampoline in the tail of every
+      9  3100							; bank brings it here and takes it back.
+     10  3100
+     11  3100							; room_copy: the playfield of room `room` into the Superchip
+     12  3100							; RAM, from the last byte down. The change of room is the
+     13  3100							; heaviest frame of the VBLANK, so the loop is unrolled:
+     14  3100							; 60 copies of the three instructions, 12 cycles a byte
+     15  3100							; (13 when the load crosses a page) instead of 15 or 16.
+     16  3100				   room_copy
+     17  3100		       a6 85		      ldx	room
+     18  3102		       bd 37 76 	      lda	RS_LO,x
+     19  3105		       85 a8		      sta	tmp
+     20  3107		       bd 47 76 	      lda	RS_HI,x
+     21  310a		       85 a9		      sta	tmp+1
+     22  310c		       a0 3b		      ldy	#59
+     23  310e					      REPEAT	60
+     24  310e		       b1 a8		      lda	(tmp),y
+     25  3110		       99 00 10 	      sta	SCW,y
+     26  3113		       88		      dey
+     23  3113					      REPEND
+     24  3114		       b1 a8		      lda	(tmp),y
+     25  3116		       99 00 10 	      sta	SCW,y
+     26  3119		       88		      dey
+     23  3119					      REPEND
+     24  311a		       b1 a8		      lda	(tmp),y
+     25  311c		       99 00 10 	      sta	SCW,y
+     26  311f		       88		      dey
+     23  311f					      REPEND
+     24  3120		       b1 a8		      lda	(tmp),y
+     25  3122		       99 00 10 	      sta	SCW,y
+     26  3125		       88		      dey
+     23  3125					      REPEND
+     24  3126		       b1 a8		      lda	(tmp),y
+     25  3128		       99 00 10 	      sta	SCW,y
+     26  312b		       88		      dey
+     23  312b					      REPEND
+     24  312c		       b1 a8		      lda	(tmp),y
+     25  312e		       99 00 10 	      sta	SCW,y
+     26  3131		       88		      dey
+     23  3131					      REPEND
+     24  3132		       b1 a8		      lda	(tmp),y
+     25  3134		       99 00 10 	      sta	SCW,y
+     26  3137		       88		      dey
+     23  3137					      REPEND
+     24  3138		       b1 a8		      lda	(tmp),y
+     25  313a		       99 00 10 	      sta	SCW,y
+     26  313d		       88		      dey
+     23  313d					      REPEND
+     24  313e		       b1 a8		      lda	(tmp),y
+     25  3140		       99 00 10 	      sta	SCW,y
+     26  3143		       88		      dey
+     23  3143					      REPEND
+     24  3144		       b1 a8		      lda	(tmp),y
+     25  3146		       99 00 10 	      sta	SCW,y
+     26  3149		       88		      dey
+     23  3149					      REPEND
+     24  314a		       b1 a8		      lda	(tmp),y
+     25  314c		       99 00 10 	      sta	SCW,y
+     26  314f		       88		      dey
+     23  314f					      REPEND
+     24  3150		       b1 a8		      lda	(tmp),y
+     25  3152		       99 00 10 	      sta	SCW,y
+     26  3155		       88		      dey
+     23  3155					      REPEND
+     24  3156		       b1 a8		      lda	(tmp),y
+     25  3158		       99 00 10 	      sta	SCW,y
+     26  315b		       88		      dey
+     23  315b					      REPEND
+     24  315c		       b1 a8		      lda	(tmp),y
+     25  315e		       99 00 10 	      sta	SCW,y
+     26  3161		       88		      dey
+     23  3161					      REPEND
+     24  3162		       b1 a8		      lda	(tmp),y
+     25  3164		       99 00 10 	      sta	SCW,y
+     26  3167		       88		      dey
+     23  3167					      REPEND
+     24  3168		       b1 a8		      lda	(tmp),y
+     25  316a		       99 00 10 	      sta	SCW,y
+     26  316d		       88		      dey
+     23  316d					      REPEND
+     24  316e		       b1 a8		      lda	(tmp),y
+     25  3170		       99 00 10 	      sta	SCW,y
+     26  3173		       88		      dey
+     23  3173					      REPEND
+     24  3174		       b1 a8		      lda	(tmp),y
+     25  3176		       99 00 10 	      sta	SCW,y
+     26  3179		       88		      dey
+     23  3179					      REPEND
+     24  317a		       b1 a8		      lda	(tmp),y
+     25  317c		       99 00 10 	      sta	SCW,y
+     26  317f		       88		      dey
+     23  317f					      REPEND
+     24  3180		       b1 a8		      lda	(tmp),y
+     25  3182		       99 00 10 	      sta	SCW,y
+     26  3185		       88		      dey
+     23  3185					      REPEND
+     24  3186		       b1 a8		      lda	(tmp),y
+     25  3188		       99 00 10 	      sta	SCW,y
+     26  318b		       88		      dey
+     23  318b					      REPEND
+     24  318c		       b1 a8		      lda	(tmp),y
+     25  318e		       99 00 10 	      sta	SCW,y
+     26  3191		       88		      dey
+     23  3191					      REPEND
+     24  3192		       b1 a8		      lda	(tmp),y
+     25  3194		       99 00 10 	      sta	SCW,y
+     26  3197		       88		      dey
+     23  3197					      REPEND
+     24  3198		       b1 a8		      lda	(tmp),y
+     25  319a		       99 00 10 	      sta	SCW,y
+     26  319d		       88		      dey
+     23  319d					      REPEND
+     24  319e		       b1 a8		      lda	(tmp),y
+     25  31a0		       99 00 10 	      sta	SCW,y
+     26  31a3		       88		      dey
+     23  31a3					      REPEND
+     24  31a4		       b1 a8		      lda	(tmp),y
+     25  31a6		       99 00 10 	      sta	SCW,y
+     26  31a9		       88		      dey
+     23  31a9					      REPEND
+     24  31aa		       b1 a8		      lda	(tmp),y
+     25  31ac		       99 00 10 	      sta	SCW,y
+     26  31af		       88		      dey
+     23  31af					      REPEND
+     24  31b0		       b1 a8		      lda	(tmp),y
+     25  31b2		       99 00 10 	      sta	SCW,y
+     26  31b5		       88		      dey
+     23  31b5					      REPEND
+     24  31b6		       b1 a8		      lda	(tmp),y
+     25  31b8		       99 00 10 	      sta	SCW,y
+     26  31bb		       88		      dey
+     23  31bb					      REPEND
+     24  31bc		       b1 a8		      lda	(tmp),y
+     25  31be		       99 00 10 	      sta	SCW,y
+     26  31c1		       88		      dey
+     23  31c1					      REPEND
+     24  31c2		       b1 a8		      lda	(tmp),y
+     25  31c4		       99 00 10 	      sta	SCW,y
+     26  31c7		       88		      dey
+     23  31c7					      REPEND
+     24  31c8		       b1 a8		      lda	(tmp),y
+     25  31ca		       99 00 10 	      sta	SCW,y
+     26  31cd		       88		      dey
+     23  31cd					      REPEND
+     24  31ce		       b1 a8		      lda	(tmp),y
+     25  31d0		       99 00 10 	      sta	SCW,y
+     26  31d3		       88		      dey
+     23  31d3					      REPEND
+     24  31d4		       b1 a8		      lda	(tmp),y
+     25  31d6		       99 00 10 	      sta	SCW,y
+     26  31d9		       88		      dey
+     23  31d9					      REPEND
+     24  31da		       b1 a8		      lda	(tmp),y
+     25  31dc		       99 00 10 	      sta	SCW,y
+     26  31df		       88		      dey
+     23  31df					      REPEND
+     24  31e0		       b1 a8		      lda	(tmp),y
+     25  31e2		       99 00 10 	      sta	SCW,y
+     26  31e5		       88		      dey
+     23  31e5					      REPEND
+     24  31e6		       b1 a8		      lda	(tmp),y
+     25  31e8		       99 00 10 	      sta	SCW,y
+     26  31eb		       88		      dey
+     23  31eb					      REPEND
+     24  31ec		       b1 a8		      lda	(tmp),y
+     25  31ee		       99 00 10 	      sta	SCW,y
+     26  31f1		       88		      dey
+     23  31f1					      REPEND
+     24  31f2		       b1 a8		      lda	(tmp),y
+     25  31f4		       99 00 10 	      sta	SCW,y
+     26  31f7		       88		      dey
+     23  31f7					      REPEND
+     24  31f8		       b1 a8		      lda	(tmp),y
+     25  31fa		       99 00 10 	      sta	SCW,y
+     26  31fd		       88		      dey
+     23  31fd					      REPEND
+     24  31fe		       b1 a8		      lda	(tmp),y
+     25  3200		       99 00 10 	      sta	SCW,y
+     26  3203		       88		      dey
+     23  3203					      REPEND
+     24  3204		       b1 a8		      lda	(tmp),y
+     25  3206		       99 00 10 	      sta	SCW,y
+     26  3209		       88		      dey
+     23  3209					      REPEND
+     24  320a		       b1 a8		      lda	(tmp),y
+     25  320c		       99 00 10 	      sta	SCW,y
+     26  320f		       88		      dey
+     23  320f					      REPEND
+     24  3210		       b1 a8		      lda	(tmp),y
+     25  3212		       99 00 10 	      sta	SCW,y
+     26  3215		       88		      dey
+     23  3215					      REPEND
+     24  3216		       b1 a8		      lda	(tmp),y
+     25  3218		       99 00 10 	      sta	SCW,y
+     26  321b		       88		      dey
+     23  321b					      REPEND
+     24  321c		       b1 a8		      lda	(tmp),y
+     25  321e		       99 00 10 	      sta	SCW,y
+     26  3221		       88		      dey
+     23  3221					      REPEND
+     24  3222		       b1 a8		      lda	(tmp),y
+     25  3224		       99 00 10 	      sta	SCW,y
+     26  3227		       88		      dey
+     23  3227					      REPEND
+     24  3228		       b1 a8		      lda	(tmp),y
+     25  322a		       99 00 10 	      sta	SCW,y
+     26  322d		       88		      dey
+     23  322d					      REPEND
+     24  322e		       b1 a8		      lda	(tmp),y
+     25  3230		       99 00 10 	      sta	SCW,y
+     26  3233		       88		      dey
+     23  3233					      REPEND
+     24  3234		       b1 a8		      lda	(tmp),y
+     25  3236		       99 00 10 	      sta	SCW,y
+     26  3239		       88		      dey
+     23  3239					      REPEND
+     24  323a		       b1 a8		      lda	(tmp),y
+     25  323c		       99 00 10 	      sta	SCW,y
+     26  323f		       88		      dey
+     23  323f					      REPEND
+     24  3240		       b1 a8		      lda	(tmp),y
+     25  3242		       99 00 10 	      sta	SCW,y
+     26  3245		       88		      dey
+     23  3245					      REPEND
+     24  3246		       b1 a8		      lda	(tmp),y
+     25  3248		       99 00 10 	      sta	SCW,y
+     26  324b		       88		      dey
+     23  324b					      REPEND
+     24  324c		       b1 a8		      lda	(tmp),y
+     25  324e		       99 00 10 	      sta	SCW,y
+     26  3251		       88		      dey
+     23  3251					      REPEND
+     24  3252		       b1 a8		      lda	(tmp),y
+     25  3254		       99 00 10 	      sta	SCW,y
+     26  3257		       88		      dey
+     23  3257					      REPEND
+     24  3258		       b1 a8		      lda	(tmp),y
+     25  325a		       99 00 10 	      sta	SCW,y
+     26  325d		       88		      dey
+     23  325d					      REPEND
+     24  325e		       b1 a8		      lda	(tmp),y
+     25  3260		       99 00 10 	      sta	SCW,y
+     26  3263		       88		      dey
+     23  3263					      REPEND
+     24  3264		       b1 a8		      lda	(tmp),y
+     25  3266		       99 00 10 	      sta	SCW,y
+     26  3269		       88		      dey
+     23  3269					      REPEND
+     24  326a		       b1 a8		      lda	(tmp),y
+     25  326c		       99 00 10 	      sta	SCW,y
+     26  326f		       88		      dey
+     23  326f					      REPEND
+     24  3270		       b1 a8		      lda	(tmp),y
+     25  3272		       99 00 10 	      sta	SCW,y
+     26  3275		       88		      dey
+     27  3276					      REPEND
+     28  3276				   rc_done
+     29  3276		       60		      rts
+------- FILE scalecrown.asm
+------- FILE bank3.asm LEVEL 2 PASS 2
+      0  3277					      include	"bank3.asm"
+      1  3277							; generated by build_assets.py - bank 3
+      2  3277
+      3  3277							; the rooms for the Superchip RAM: PF0 of the 20
+      4  3277							; courses, then PF1, then PF2; course c at index 19-c
+      5  3277							; 0 RUBBLE HALL
+      6  3277				   RS_0
+      7  3277		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+      8  3281		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$D0,$70
+      9  328b		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$F0,$F0,$00,$00,$00,$00
+     10  3295		       00 00 c0 c0*	      .byte.b	$00,$00,$C0,$C0,$F0,$F0,$00,$00,$BB,$EE
+     11  329f		       dd f7 00 00*	      .byte.b	$DD,$F7,$00,$00,$3C,$3C,$3C,$3C,$00,$00
+     12  32a9		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$0C,$0C,$00,$00,$DD,$F7
+     13  32b3							; 1 THE BROKEN GATE
+     14  32b3				   RS_1
+     15  32b3		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+     16  32bd		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$D0,$70
+     17  32c7		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$3C,$3C,$3C,$3C,$00,$00
+     18  32d1		       00 00 3c 3c*	      .byte.b	$00,$00,$3C,$3C,$3C,$3C,$00,$00,$BB,$EE
+     19  32db		       dd f7 00 00*	      .byte.b	$DD,$F7,$00,$00,$00,$00,$3C,$3C,$00,$00
+     20  32e5		       00 00 3c 3c*	      .byte.b	$00,$00,$3C,$3C,$00,$00,$00,$00,$0D,$0F
+     21  32ef							; 2 PILLAR WALK
+     22  32ef				   RS_2
+     23  32ef		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+     24  32f9		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$D0,$70
+     25  3303		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$30,$30,$30,$30,$00,$0A
+     26  330d		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$00,$00,$BB,$EE
+     27  3317		       dd f7 00 00*	      .byte.b	$DD,$F7,$00,$00,$0C,$0C,$0C,$0C,$00,$00
+     28  3321		       00 00 0c 0c*	      .byte.b	$00,$00,$0C,$0C,$0C,$0C,$00,$00,$DD,$F7
+     29  332b							; 3 THE IRON STAIR
+     30  332b				   RS_3
+     31  332b		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+     32  3335		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$D0,$70
+     33  333f		       bb ee 3c 3c*	      .byte.b	$BB,$EE,$3C,$3C,$3C,$3C,$00,$00,$00,$00
+     34  3349		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$BB,$EF,$00,$00,$BB,$EE
+     35  3353		       ad af 03 c3*	      .byte.b	$AD,$AF,$03,$C3,$0F,$EF,$00,$00,$00,$00
+     36  335d		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$00,$00,$DD,$F7
+     37  3367							; 4 BONE NICHE
+     38  3367				   RS_4
+     39  3367		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+     40  3371		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$F0,$F0
+     41  337b		       bb ee cc cc*	      .byte.b	$BB,$EE,$CC,$CC,$00,$00,$0F,$0F,$00,$00
+     42  3385		       00 00 0f 0f*	      .byte.b	$00,$00,$0F,$0F,$00,$00,$CC,$CC,$3F,$FF
+     43  338f		       dd f7 03 03*	      .byte.b	$DD,$F7,$03,$03,$00,$00,$00,$00,$00,$00
+     44  3399		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$03,$03,$FC,$FF
+     45  33a3							; 5 THE NARROW STEPS
+     46  33a3				   RS_5
+     47  33a3		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+     48  33ad		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$F0,$F0
+     49  33b7		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$3C,$3C,$3C,$3C,$00,$00
+     50  33c1		       00 00 bc ec*	      .byte.b	$00,$00,$BC,$EC,$BC,$EC,$00,$00,$CF,$FF
+     51  33cb		       ad af 0c cc*	      .byte.b	$AD,$AF,$0C,$CC,$0C,$EC,$0C,$0C,$00,$05
+     52  33d5		       00 00 dc f4*	      .byte.b	$00,$00,$DC,$F4,$DC,$F4,$00,$00,$F3,$FF
+     53  33df							; 6 SHED SKINS
+     54  33df				   RS_6
+     55  33df		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+     56  33e9		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$30,$F0
+     57  33f3		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$BC,$EC,$C0,$C0,$00,$28
+     58  33fd		       00 00 c0 c0*	      .byte.b	$00,$00,$C0,$C0,$BC,$EC,$00,$00,$FC,$FF
+     59  3407		       dd f7 00 00*	      .byte.b	$DD,$F7,$00,$00,$3C,$3C,$3C,$3C,$00,$00
+     60  3411		       00 00 3c 3c*	      .byte.b	$00,$00,$3C,$3C,$3C,$3C,$00,$00,$3F,$FF
+     61  341b							; 7 THE LANDING
+     62  341b				   RS_7
+     63  341b		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+     64  3425		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$D0,$70
+     65  342f		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$F0,$F0,$F0,$F0,$00,$00
+     66  3439		       00 00 f0 f0*	      .byte.b	$00,$00,$F0,$F0,$F0,$F0,$00,$00,$BB,$EE
+     67  3443		       dd f7 00 00*	      .byte.b	$DD,$F7,$00,$00,$00,$00,$0F,$0F,$00,$00
+     68  344d		       00 00 0f 0f*	      .byte.b	$00,$00,$0F,$0F,$E0,$00,$C0,$00,$8D,$0F
+     69  3457							; 8 THE DROWNED STAIR
+     70  3457				   RS_8
+     71  3457		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+     72  3461		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$D0,$70
+     73  346b		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$3C,$3C,$3C,$3C,$00,$00
+     74  3475		       00 00 3c 3c*	      .byte.b	$00,$00,$3C,$3C,$3C,$3C,$00,$00,$BB,$EE
+     75  347f		       ad af 00 c0*	      .byte.b	$AD,$AF,$00,$C0,$0C,$EC,$0C,$0C,$00,$14
+     76  3489		       00 00 3c 3c*	      .byte.b	$00,$00,$3C,$3C,$3C,$3C,$00,$00,$DD,$F7
+     77  3493							; 9 COLD LANDING
+     78  3493				   RS_9
+     79  3493		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+     80  349d		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$D0,$70
+     81  34a7		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$BC,$EC,$BC,$EC,$00,$00
+     82  34b1		       00 00 bc ec*	      .byte.b	$00,$00,$BC,$EC,$BC,$EC,$00,$00,$BB,$EE
+     83  34bb		       dd f7 00 00*	      .byte.b	$DD,$F7,$00,$00,$3C,$3C,$3C,$3C,$00,$00
+     84  34c5		       00 00 0c 0c*	      .byte.b	$00,$00,$0C,$0C,$EC,$0C,$C0,$00,$8D,$0F
+     85  34cf							; 10 REED GALLERY
+     86  34cf				   RS_10
+     87  34cf		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+     88  34d9		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$D0,$70
+     89  34e3		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$CC,$CC,$CC,$CC,$00,$0A
+     90  34ed		       00 00 cc cc*	      .byte.b	$00,$00,$CC,$CC,$CC,$CC,$00,$00,$BB,$EE
+     91  34f7		       dd f7 00 00*	      .byte.b	$DD,$F7,$00,$00,$0C,$0C,$0C,$0C,$00,$00
+     92  3501		       00 00 0c 0c*	      .byte.b	$00,$00,$0C,$0C,$0C,$0C,$00,$00,$DD,$F7
+     93  350b							; 11 FANG CISTERN
+     94  350b				   RS_11
+     95  350b		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+     96  3515		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$D0,$70
+     97  351f		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$F3,$F3,$F3,$F3,$00,$00
+     98  3529		       00 00 f3 f3*	      .byte.b	$00,$00,$F3,$F3,$F3,$F3,$00,$00,$BB,$EE
+     99  3533		       dd f7 00 00*	      .byte.b	$DD,$F7,$00,$00,$F3,$F3,$F3,$F3,$00,$0A
+    100  353d		       00 00 f3 f3*	      .byte.b	$00,$00,$F3,$F3,$F3,$F3,$00,$00,$DD,$F7
+    101  3547							; 12 LAST LANDING
+    102  3547				   RS_12
+    103  3547		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+    104  3551		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$D0,$70
+    105  355b		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$C0,$C0,$CB,$CE,$00,$00
+    106  3565		       00 00 c0 c0*	      .byte.b	$00,$00,$C0,$C0,$BB,$EF,$00,$00,$BB,$EE
+    107  356f		       dd f7 00 00*	      .byte.b	$DD,$F7,$00,$00,$00,$00,$0D,$0F,$00,$00
+    108  3579		       00 00 0c 0c*	      .byte.b	$00,$00,$0C,$0C,$EC,$0C,$C0,$00,$8D,$0F
+    109  3583							; 13 HALL OF COILS
+    110  3583				   RS_13
+    111  3583		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+    112  358d		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$F0,$F0
+    113  3597		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$3C,$3C,$3C,$3C,$00,$50
+    114  35a1		       00 00 3c 3c*	      .byte.b	$00,$00,$3C,$3C,$3C,$3C,$00,$00,$3F,$FF
+    115  35ab		       dd f7 00 00*	      .byte.b	$DD,$F7,$00,$00,$00,$00,$3D,$37,$00,$00
+    116  35b5		       00 00 3d 37*	      .byte.b	$00,$00,$3D,$37,$00,$00,$00,$00,$F3,$FF
+    117  35bf							; 14 THE GILDED GATE
+    118  35bf				   RS_14
+    119  35bf		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+    120  35c9		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$F0,$F0
+    121  35d3		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$C0,$C0,$C3,$C2,$00,$00
+    122  35dd		       00 00 c3 c2*	      .byte.b	$00,$00,$C3,$C2,$C0,$C0,$00,$00,$CF,$FF
+    123  35e7		       dd f7 00 00*	      .byte.b	$DD,$F7,$00,$00,$00,$00,$3D,$37,$00,$05
+    124  35f1		       00 00 3d 37*	      .byte.b	$00,$00,$3D,$37,$00,$00,$00,$00,$FC,$FF
+    125  35fb							; 15 THRONE OF SCALES
+    126  35fb				   RS_15
+    127  35fb		       d0 70 30 30*	      .byte.b	$D0,$70,$30,$30,$30,$30,$30,$30,$00,$00
+    128  3605		       00 00 30 30*	      .byte.b	$00,$00,$30,$30,$30,$30,$30,$30,$F0,$F0
+    129  360f		       bb ee 00 00*	      .byte.b	$BB,$EE,$00,$00,$30,$30,$00,$00,$00,$00
+    130  3619		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$30,$30,$00,$00,$CF,$FF
+    131  3623		       dd f7 00 00*	      .byte.b	$DD,$F7,$00,$00,$00,$00,$00,$00,$00,$00
+    132  362d		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$00,$00,$F0,$F0,$CF,$FF
+    133  3637
+    134  3637				   RS_LO
+    135  3637		       77 b3 ef 	      .byte.b	<(RS_0), <(RS_1), <(RS_2)
+    136  363a		       2b 67 a3 	      .byte.b	<(RS_3), <(RS_4), <(RS_5)
+    137  363d		       df 1b 57 	      .byte.b	<(RS_6), <(RS_7), <(RS_8)
+    138  3640		       93 cf 0b 	      .byte.b	<(RS_9), <(RS_10), <(RS_11)
+    139  3643		       47 83 bf 	      .byte.b	<(RS_12), <(RS_13), <(RS_14)
+    140  3646		       fb		      .byte.b	<(RS_15)
+    141  3647				   RS_HI
+    142  3647		       72 72 72 	      .byte.b	>(RS_0), >(RS_1), >(RS_2)
+    143  364a		       73 73 73 	      .byte.b	>(RS_3), >(RS_4), >(RS_5)
+    144  364d		       73 74 74 	      .byte.b	>(RS_6), >(RS_7), >(RS_8)
+    145  3650		       74 74 75 	      .byte.b	>(RS_9), >(RS_10), >(RS_11)
+    146  3653		       75 75 75 	      .byte.b	>(RS_12), >(RS_13), >(RS_14)
+    147  3656		       75		      .byte.b	>(RS_15)
+------- FILE scalecrown.asm
+    208  3657				   bank3_end
+      0  3657					      TAIL	3
+      1  3faa					      ORG	3*$1000+$FAA
+      2  3faa					      RORG	$1FAA+3*$2000
+      3  3faa		       8d fa 1f 	      sta	F4B6
+      4  3fad		       4c 00 d1 	      jmp	ends_kernel
+      5  3fb0		       8d f6 1f 	      sta	F4B2
+      6  3fb3		       4c 00 51 	      jmp	throne_kernel
+      7  3fb6		       8d f8 1f 	      sta	F4B4
+      8  3fb9		       20 00 91 	      jsr	things
+      9  3fbc		       8d fb 1f 	      sta	F4B7
+     10  3fbf		       60		      rts
+     11  3fc0		       8d f4 1f 	      sta	F4B0
+     12  3fc3		       4c ba 14 	      jmp	room_kernel
+     13  3fc6		       8d f5 1f 	      sta	F4B1
+     14  3fc9		       4c 00 31 	      jmp	title_kernel
+     15  3fcc		       8d fb 1f 	      sta	F4B7
+     16  3fcf		       4c 16 f1 	      jmp	kernel_done
+     17  3fd2		       8d f9 1f 	      sta	F4B5
+     18  3fd5		       20 00 b1 	      jsr	sound
+     19  3fd8		       8d fb 1f 	      sta	F4B7
+     20  3fdb		       60		      rts
+     21  3fe0					      ORG	3*$1000+$FE0
+     22  3fe0					      RORG	$1FE0+3*$2000
+     23  3fe0		       8d fb 1f 	      sta	F4B7
+     24  3fe3		       4c 00 f1 	      jmp	start
+     25  3fe6		       8d f7 1f 	      sta	F4B3
+     26  3fe9		       20 00 71 	      jsr	room_copy
+     27  3fec		       8d fb 1f 	      sta	F4B7
+     28  3fef		       60		      rts
+     29  3ffc					      ORG	3*$1000+$FFC
+     30  3ffc					      RORG	$1FFC+3*$2000
+     31  3ffc		       e0 7f		      .word.w	$1FE0+3*$2000
+     32  3ffe		       e0 7f		      .word.w	$1FE0+3*$2000
+    210  4000							; --- bank 4: the things ----------------------------------
+      0  4000					      BANK	4
+      1  5000 ????				      SEG	bank4
+      2  4000					      ORG	4*$1000
+      3  4000					      RORG	$1000+4*$2000
+      4  4000		       00 00 00 00*	      ds	256, 0
+    212  4100				   things		; (step 4)
+    213  4100		       60		      rts
+    214  4101				   bank4_end
+      0  4101					      TAIL	4
+      1  4faa					      ORG	4*$1000+$FAA
+      2  4faa					      RORG	$1FAA+4*$2000
+      3  4faa		       8d fa 1f 	      sta	F4B6
+      4  4fad		       4c 00 d1 	      jmp	ends_kernel
+      5  4fb0		       8d f6 1f 	      sta	F4B2
+      6  4fb3		       4c 00 51 	      jmp	throne_kernel
+      7  4fb6		       8d f8 1f 	      sta	F4B4
+      8  4fb9		       20 00 91 	      jsr	things
+      9  4fbc		       8d fb 1f 	      sta	F4B7
+     10  4fbf		       60		      rts
+     11  4fc0		       8d f4 1f 	      sta	F4B0
+     12  4fc3		       4c ba 14 	      jmp	room_kernel
+     13  4fc6		       8d f5 1f 	      sta	F4B1
+     14  4fc9		       4c 00 31 	      jmp	title_kernel
+     15  4fcc		       8d fb 1f 	      sta	F4B7
+     16  4fcf		       4c 16 f1 	      jmp	kernel_done
+     17  4fd2		       8d f9 1f 	      sta	F4B5
+     18  4fd5		       20 00 b1 	      jsr	sound
+     19  4fd8		       8d fb 1f 	      sta	F4B7
+     20  4fdb		       60		      rts
+     21  4fe0					      ORG	4*$1000+$FE0
+     22  4fe0					      RORG	$1FE0+4*$2000
+     23  4fe0		       8d fb 1f 	      sta	F4B7
+     24  4fe3		       4c 00 f1 	      jmp	start
+     25  4fe6		       8d f7 1f 	      sta	F4B3
+     26  4fe9		       20 00 71 	      jsr	room_copy
+     27  4fec		       8d fb 1f 	      sta	F4B7
+     28  4fef		       60		      rts
+     29  4ffc					      ORG	4*$1000+$FFC
+     30  4ffc					      RORG	$1FFC+4*$2000
+     31  4ffc		       e0 9f		      .word.w	$1FE0+4*$2000
+     32  4ffe		       e0 9f		      .word.w	$1FE0+4*$2000
+    216  5000							; --- bank 5: sound ---------------------------------------
+      0  5000					      BANK	5
+      1  6000 ????				      SEG	bank5
+      2  5000					      ORG	5*$1000
+      3  5000					      RORG	$1000+5*$2000
+      4  5000		       00 00 00 00*	      ds	256, 0
+    218  5100				   sound		; (step 7)
+    219  5100		       60		      rts
+    220  5101				   bank5_end
+      0  5101					      TAIL	5
+      1  5faa					      ORG	5*$1000+$FAA
+      2  5faa					      RORG	$1FAA+5*$2000
+      3  5faa		       8d fa 1f 	      sta	F4B6
+      4  5fad		       4c 00 d1 	      jmp	ends_kernel
+      5  5fb0		       8d f6 1f 	      sta	F4B2
+      6  5fb3		       4c 00 51 	      jmp	throne_kernel
+      7  5fb6		       8d f8 1f 	      sta	F4B4
+      8  5fb9		       20 00 91 	      jsr	things
+      9  5fbc		       8d fb 1f 	      sta	F4B7
+     10  5fbf		       60		      rts
+     11  5fc0		       8d f4 1f 	      sta	F4B0
+     12  5fc3		       4c ba 14 	      jmp	room_kernel
+     13  5fc6		       8d f5 1f 	      sta	F4B1
+     14  5fc9		       4c 00 31 	      jmp	title_kernel
+     15  5fcc		       8d fb 1f 	      sta	F4B7
+     16  5fcf		       4c 16 f1 	      jmp	kernel_done
+     17  5fd2		       8d f9 1f 	      sta	F4B5
+     18  5fd5		       20 00 b1 	      jsr	sound
+     19  5fd8		       8d fb 1f 	      sta	F4B7
+     20  5fdb		       60		      rts
+     21  5fe0					      ORG	5*$1000+$FE0
+     22  5fe0					      RORG	$1FE0+5*$2000
+     23  5fe0		       8d fb 1f 	      sta	F4B7
+     24  5fe3		       4c 00 f1 	      jmp	start
+     25  5fe6		       8d f7 1f 	      sta	F4B3
+     26  5fe9		       20 00 71 	      jsr	room_copy
+     27  5fec		       8d fb 1f 	      sta	F4B7
+     28  5fef		       60		      rts
+     29  5ffc					      ORG	5*$1000+$FFC
+     30  5ffc					      RORG	$1FFC+5*$2000
+     31  5ffc		       e0 bf		      .word.w	$1FE0+5*$2000
+     32  5ffe		       e0 bf		      .word.w	$1FE0+5*$2000
+    222  6000							; --- bank 6: the end screens ----------------------------
+      0  6000					      BANK	6
+      1  7000 ????				      SEG	bank6
+      2  6000					      ORG	6*$1000
+      3  6000					      RORG	$1000+6*$2000
+      4  6000		       00 00 00 00*	      ds	256, 0
+    224  6100				   ends_kernel		; (step 8)
+    225  6100		       4c cc 1f 	      jmp	TO_MAIN
+    226  6103				   bank6_end
+      0  6103					      TAIL	6
+      1  6faa					      ORG	6*$1000+$FAA
+      2  6faa					      RORG	$1FAA+6*$2000
+      3  6faa		       8d fa 1f 	      sta	F4B6
+      4  6fad		       4c 00 d1 	      jmp	ends_kernel
+      5  6fb0		       8d f6 1f 	      sta	F4B2
+      6  6fb3		       4c 00 51 	      jmp	throne_kernel
+      7  6fb6		       8d f8 1f 	      sta	F4B4
+      8  6fb9		       20 00 91 	      jsr	things
+      9  6fbc		       8d fb 1f 	      sta	F4B7
+     10  6fbf		       60		      rts
+     11  6fc0		       8d f4 1f 	      sta	F4B0
+     12  6fc3		       4c ba 14 	      jmp	room_kernel
+     13  6fc6		       8d f5 1f 	      sta	F4B1
+     14  6fc9		       4c 00 31 	      jmp	title_kernel
+     15  6fcc		       8d fb 1f 	      sta	F4B7
+     16  6fcf		       4c 16 f1 	      jmp	kernel_done
+     17  6fd2		       8d f9 1f 	      sta	F4B5
+     18  6fd5		       20 00 b1 	      jsr	sound
+     19  6fd8		       8d fb 1f 	      sta	F4B7
+     20  6fdb		       60		      rts
+     21  6fe0					      ORG	6*$1000+$FE0
+     22  6fe0					      RORG	$1FE0+6*$2000
+     23  6fe0		       8d fb 1f 	      sta	F4B7
+     24  6fe3		       4c 00 f1 	      jmp	start
+     25  6fe6		       8d f7 1f 	      sta	F4B3
+     26  6fe9		       20 00 71 	      jsr	room_copy
+     27  6fec		       8d fb 1f 	      sta	F4B7
+     28  6fef		       60		      rts
+     29  6ffc					      ORG	6*$1000+$FFC
+     30  6ffc					      RORG	$1FFC+6*$2000
+     31  6ffc		       e0 df		      .word.w	$1FE0+6*$2000
+     32  6ffe		       e0 df		      .word.w	$1FE0+6*$2000
+    228  7000
+    229  7000							; --- bank 7: start, frame, logic, HUD ---------------------
+      0  7000					      BANK	7
+      1  8000 ????				      SEG	bank7
+      2  7000					      ORG	7*$1000
+      3  7000					      RORG	$1000+7*$2000
+      4  7000		       00 00 00 00*	      ds	256, 0
+------- FILE main.asm LEVEL 2 PASS 2
+      0  7100					      include	"main.asm"
+      1  7100							; main.asm - bank 7: start, the frame, and what is done
+      2  7100							; in it besides the kernels:
+      3  7100							; - the buttons: RESET starts again;
+      4  7100							; - setting a room up: its playfield comes from bank 3
+      5  7100							;   into the Superchip RAM;
+      6  7100							; - what the kernels need: Sir Roderick, the colours of
+      7  7100							;   the room.
+      8  7100
+      9  7100				   start
+     10  7100		       78		      sei
+     11  7101		       d8		      cld
+     12  7102		       a2 00		      ldx	#0
+     13  7104		       8a		      txa
+     14  7105		       95 00	   clear      sta	0,x	; TIA and RAM
+     15  7107		       ca		      dex
+     16  7108		       d0 fb		      bne	clear
+     17  710a		       ca		      dex
+     18  710b		       9a		      txs		; stack at $FF
+     19  710c		       a9 ff		      lda	#$FF
+     20  710e		       85 82		      sta	shown	; no room set up yet
+     21  7110		       20 72 f1 	      jsr	new_game	; the game at once
+     22  7113		       4c 1b f1 	      jmp	main
+     23  7116
+     24  7116				   kernel_done		; back from a kernel (the
+     25  7116							; overscan timer is running)
+     26  7116				   over_wait
+     27  7116		       ad 84 02 	      lda	INTIM
+     28  7119		       d0 fb		      bne	over_wait
+     29  711b
+     30  711b		       a9 02	   main       lda	#2	; VSYNC: three lines,
+     31  711d		       85 02		      sta	WSYNC	; 228 cycles
+     32  711f		       85 00		      sta	VSYNC
+     33  7121		       85 01		      sta	VBLANK
+     34  7123		       85 02		      sta	WSYNC
+     35  7125		       85 02		      sta	WSYNC
+     36  7127		       4a		      lsr
+     37  7128		       85 02		      sta	WSYNC
+     38  712a		       85 00		      sta	VSYNC
+     39  712c		       a9 36		      lda	#VBLANK_TIM
+     40  712e		       8d 96 02 	      sta	TIM64T
+     41  7131		       e6 80		      inc	frames
+     42  7133				   frame_ready		; the tests stop here
+     43  7133		       20 57 f1 	      jsr	buttons
+     44  7136				   fr_game
+     45  7136		       a5 84		      lda	pressed
+     46  7138		       4a		      lsr		; bit 0: RESET
+     47  7139		       90 06		      bcc	fr_play
+     48  713b		       20 72 f1 	      jsr	new_game	; start again
+     49  713e		       4c 44 f1 	      jmp	fr_room
+     50  7141				   fr_play
+     51  7141				   fr_knight
+     52  7141		       20 12 f2 	      jsr	knight	; Sir Roderick (knight.asm)
+     53  7144				   fr_room
+     54  7144		       20 95 f1 	      jsr	setup_room
+     55  7147		       20 a1 f1 	      jsr	room_state
+     56  714a		       20 ae f1 	      jsr	prep_room
+     57  714d				   vb_end		; the tests read INTIM here
+     58  714d		       ad 84 02 	      lda	INTIM
+     59  7150		       d0 fb		      bne	vb_end
+     60  7152		       85 02		      sta	WSYNC
+     61  7154		       4c 7c f3 	      jmp	hud	; HUD (hud.asm), then room
+     62  7157
+     63  7157							; ---------------------------------------------------------
+     64  7157							; buttons: pressed = down in this frame and up in the one
+     65  7157							; before; fire $80, SELECT $02, RESET $01 (all are 0 when
+     66  7157							; down)
+     67  7157
+     68  7157				   buttons
+     69  7157		       a5 0c		      lda	INPT4	; bit 7: the fire button
+     70  7159		       49 ff		      eor	#$FF
+     71  715b		       29 80		      and	#$80
+     72  715d		       85 a8		      sta	tmp
+     73  715f		       ad 82 02 	      lda	SWCHB	; bit 0 RESET, bit 1 SELECT
+     74  7162		       49 ff		      eor	#$FF
+     75  7164		       29 03		      and	#$03
+     76  7166		       05 a8		      ora	tmp
+     77  7168		       aa		      tax		; down now
+     78  7169		       45 83		      eor	held	; changed
+     79  716b		       86 83		      stx	held
+     80  716d		       25 83		      and	held	; changed and down now
+     81  716f		       85 84		      sta	pressed
+     82  7171		       60		      rts
+     83  7172
+     84  7172							; ---------------------------------------------------------
+     85  7172							; new_game: Sir Roderick at the start, in the first room
+     86  7172
+     87  7172				   new_game
+     88  7172		       a9 01		      lda	#START_ROOM
+     89  7174		       85 85		      sta	room
+     90  7176		       aa		      tax
+     91  7177		       e8		      inx
+     92  7178		       86 81		      stx	screen
+     93  717a		       a9 49		      lda	#START_X
+     94  717c		       85 86		      sta	kx
+     95  717e		       a9 11		      lda	#START_TOP
+     96  7180		       85 87		      sta	ky
+     97  7182		       a9 00		      lda	#0
+     98  7184		       85 88		      sta	kdir	; facing right
+     99  7186		       85 89		      sta	kpose
+    100  7188		       85 8a		      sta	kdist
+    101  718a		       85 8b		      sta	hacc
+    102  718c		       85 8c		      sta	vacc
+    103  718e		       85 8d		      sta	thrust
+    104  7190		       a9 ff		      lda	#$FF
+    105  7192		       85 82		      sta	shown	; the room is set up again
+    106  7194		       60		      rts
+    107  7195
+    108  7195							; ---------------------------------------------------------
+    109  7195							; setup_room: when the screen changes, the playfield of
+    110  7195							; the room goes into the Superchip RAM (bank 3)
+    111  7195
+    112  7195				   setup_room
+    113  7195		       a5 81		      lda	screen
+    114  7197		       c5 82		      cmp	shown
+    115  7199		       f0 05		      beq	su_done
+    116  719b		       85 82		      sta	shown
+    117  719d		       20 e6 1f 	      jsr	TO_COPY	; bank 3: room_copy
+    118  71a0				   su_copied		; the tests time the copy
+    119  71a0				   su_done
+    120  71a0		       60		      rts
+    121  71a1
+    122  71a1							; ---------------------------------------------------------
+    123  71a1							; room_state: in every frame of a game, what follows from
+    124  71a1							; the room: its collision map
+    125  71a1
+    126  71a1				   room_state
+    127  71a1		       a6 85		      ldx	room
+    128  71a3		       bd c4 f5 	      lda	CM_LO,x	; open (or no door)
+    129  71a6		       bc d4 f5 	      ldy	CM_HI,x
+    130  71a9		       85 92	   rs_map     sta	cmap
+    131  71ab		       84 93		      sty	cmap+1
+    132  71ad		       60		      rts
+    133  71ae
+    134  71ae							; ---------------------------------------------------------
+    135  71ae							; prep_room: the pointers of Sir Roderick and of the
+    136  71ae							; colours of the room; the blade and its position
+    137  71ae
+    138  71ae				   prep_room
+    139  71ae							; Sir Roderick: pose kpose, top line ky
+    140  71ae		       a4 89		      ldy	kpose
+    141  71b0		       b9 e4 f5 	      lda	KG_LO,y
+    142  71b3		       18		      clc
+    143  71b4		       65 87		      adc	ky
+    144  71b6		       85 99		      sta	kgfx
+    145  71b8		       b9 e8 f5 	      lda	KG_HI,y
+    146  71bb		       69 00		      adc	#0
+    147  71bd		       85 9a		      sta	kgfx+1
+    148  71bf		       b9 ec f5    pr_kc      lda	KC_LO,y
+    149  71c2		       18		      clc
+    150  71c3		       65 87		      adc	ky
+    151  71c5		       85 9b		      sta	kcol
+    152  71c7		       b9 f0 f5 	      lda	KC_HI,y
+    153  71ca		       69 00		      adc	#0
+    154  71cc		       85 9c		      sta	kcol+1
+    155  71ce							; colours of the room: its scheme gives COLUBK and
+    156  71ce							; COLUPF
+    157  71ce		       a6 85		      ldx	room
+    158  71d0		       bc bc f3 	      ldy	SCHEME,x
+    159  71d3		       b9 cc f3 	      lda	CB0_LO,y
+    160  71d6		       85 9d		      sta	cbk
+    161  71d8		       b9 d2 f3 	      lda	CB0_HI,y
+    162  71db		       85 9e	   pr_col     sta	cbk+1
+    163  71dd		       b9 d8 f3 	      lda	CP_LO,y
+    164  71e0		       85 9f		      sta	cpf
+    165  71e2		       b9 de f3 	      lda	CP_HI,y
+    166  71e5		       85 a0		      sta	cpf+1
+    167  71e7		       20 2c f3 	      jsr	blade	; knight.asm
+    168  71ea							; the position of the blade, missile 0 (RESMP0
+    169  71ea							; first: while it is 2 the missile stays on player
+    170  71ea							; 0; the HMOVE of HUD line 28 moves it with Sir
+    171  71ea							; Roderick)
+    172  71ea		       a5 91		      lda	swres
+    173  71ec		       85 28		      sta	RESMP0
+    174  71ee		       a5 8f		      lda	swx
+    175  71f0		       a2 02		      ldx	#2
+    176  71f2		       20 00 f2 	      jsr	place
+    177  71f5				   pr_hmove
+    178  71f5		       a9 31		      lda	#$31	; reflected playfield, the
+    179  71f7		       85 0a		      sta	CTRLPF	; ball 8 pixels wide
+    180  71f9		       60		      rts
+    181  71fa
+    182  71fa							; place: object X (0 player 0, 1 player 1, 2 missile 0, 3
+    183  71fa							; missile 1, 4 the ball) at column A: the first pixel of a
+    184  71fa							; player is A + 3, of a missile or the ball A + 2. Takes one
+    185  71fa							; line: the WSYNC, then 15 pixels per 5 cycles.
+    186  71fa							; (its loop in one page: a branch that crosses one takes a
+    187  71fa							; cycle more, and the column would be wrong; the padding
+    188  71fa							; comes after an rts)
+    189  71fa					      IF	(* & $FF00) != ((*+8) & $FF00)
+    190  7200		       00 00 00 00*	      ALIGN	256
+    191  7200					      ENDIF
+    192  7200				   place
+    193  7200		       85 02		      sta	WSYNC
+    194  7202		       38		      sec
+    195  7203		       e9 0f	   pl_div     sbc	#15
+    196  7205		       b0 fc		      bcs	pl_div	; (pl_div)
+    197  7207		       49 07		      eor	#7
+    198  7209		       0a		      asl
+    199  720a		       0a		      asl
+    200  720b		       0a		      asl
+    201  720c		       0a		      asl
+    202  720d		       95 20		      sta	HMP0,x
+    203  720f		       95 10		      sta	RESP0,x
+    204  7211		       60		      rts
+------- FILE scalecrown.asm
+------- FILE knight.asm LEVEL 2 PASS 2
+      0  7212					      include	"knight.asm"
+      1  7212							; knight.asm - bank 7: Sir Roderick
+      2  7212							;
+      3  7212							; the button starts a thrust of the sword, during which he
+      4  7212							; stands still; otherwise the joystick moves him, first
+      5  7212							; left or right, then up or down, each direction tried on
+      6  7212							; its own against the walls (so he slides along a wall
+      7  7212							; when pushed diagonally into it); the edges of the
+      8  7212							; screen stop him as the walls do.
+      9  7212							; The speeds are in bank7.asm, one table for each
+     10  7212							; television (rules.py).
+     11  7212
+     12  7212				  -	      IF	V_INT != 0
+     13  7212				  -	      ERR		; one step at most per frame
+     14  7212					      ENDIF
+     15  7212				  -	      IF	STRIDE != 8
+     16  7212				  -	      ERR		; the walk divides by 8
+     17  7212					      ENDIF
+     18  7212
+     19  7212				   knight
+     20  7212				   kn_thrust
+     21  7212		       a5 8d		      lda	thrust
+     22  7214		       f0 04		      beq	kn_fire
+     23  7216		       c6 8d		      dec	thrust
+     24  7218		       d0 08		      bne	kn_pose3	; still thrusting
+     25  721a				   kn_fire
+     26  721a		       24 84		      bit	pressed	; bit 7: the button
+     27  721c		       10 09		      bpl	kn_walk
+     28  721e		       a9 0a		      lda	#THRUST_FRAMES
+     29  7220		       85 8d		      sta	thrust
+     30  7222				   kn_pose3
+     31  7222		       a9 03		      lda	#THRUST_POSE
+     32  7224		       85 89		      sta	kpose
+     33  7226		       60		      rts
+     34  7227
+     35  7227				   kn_walk
+     36  7227		       a9 00		      lda	#0
+     37  7229		       85 8e		      sta	moved
+     38  722b		       ad 80 02 	      lda	SWCHA	; right $80, left $40, down
+     39  722e		       85 a9		      sta	tmp+1	; $20, up $10: 0 = pushed
+     40  7230		       29 c0		      and	#$C0
+     41  7232		       c9 c0		      cmp	#$C0
+     42  7234		       f0 45		      beq	kn_vert	; neither left nor right
+     43  7236		       a5 8b		      lda	hacc	; pixels in this frame:
+     44  7238		       18		      clc		; H_INT, one more when the
+     45  7239		       69 cd		      adc	#H_FRAC	; fraction carries
+     46  723b		       85 8b		      sta	hacc
+     47  723d		       a9 01		      lda	#H_INT
+     48  723f		       69 00		      adc	#0
+     49  7241		       85 a8		      sta	tmp
+     50  7243		       24 a9		      bit	tmp+1
+     51  7245		       30 0f		      bmi	kn_left	; right not pushed: left
+     52  7247		       a9 00		      lda	#0
+     53  7249		       85 88		      sta	kdir	; facing right
+     54  724b		       a5 86		      lda	kx
+     55  724d		       18		      clc
+     56  724e		       65 a8		      adc	tmp
+     57  7250		       c9 96		      cmp	#X_MAX+1
+     58  7252		       b0 27		      bcs	kn_vert	; the edge: he stays
+     59  7254		       90 0b		      bcc	kn_htry
+     60  7256				   kn_left
+     61  7256		       a9 08		      lda	#8
+     62  7258		       85 88		      sta	kdir	; facing left
+     63  725a		       a5 86		      lda	kx
+     64  725c		       38		      sec
+     65  725d		       e5 a8		      sbc	tmp
+     66  725f		       90 1a		      bcc	kn_vert	; the edge: he stays
+     67  7261				   kn_htry
+     68  7261		       85 94		      sta	nx
+     69  7263		       a5 87		      lda	ky
+     70  7265		       85 95		      sta	ny
+     71  7267		       20 cb f2 	      jsr	box_free
+     72  726a		       b0 0f		      bcs	kn_vert	; stone: he stays
+     73  726c		       a5 94		      lda	nx
+     74  726e		       85 86		      sta	kx
+     75  7270				   kn_walked
+     76  7270		       a5 8a		      lda	kdist	; the walk goes on
+     77  7272		       18		      clc
+     78  7273		       65 a8		      adc	tmp
+     79  7275		       85 8a		      sta	kdist
+     80  7277		       a9 01		      lda	#1
+     81  7279		       85 8e		      sta	moved
+     82  727b				   kn_vert
+     83  727b		       a5 a9		      lda	tmp+1
+     84  727d		       29 30		      and	#$30
+     85  727f		       c9 30		      cmp	#$30
+     86  7281		       f0 36		      beq	kn_pose	; neither up nor down
+     87  7283		       a5 8c		      lda	vacc	; a step in this frame when
+     88  7285		       18		      clc		; the fraction carries
+     89  7286		       69 f6		      adc	#V_FRAC
+     90  7288		       85 8c		      sta	vacc
+     91  728a		       90 2d		      bcc	kn_pose
+     92  728c		       a5 a9		      lda	tmp+1
+     93  728e		       29 10		      and	#$10
+     94  7290		       d0 0a		      bne	kn_down	; up not pushed: down
+     95  7292		       a5 87		      lda	ky
+     96  7294		       c9 03		      cmp	#TOP_MIN+2
+     97  7296		       90 21		      bcc	kn_pose	; at the top: he stays
+     98  7298		       e9 02		      sbc	#2	; (carry is set)
+     99  729a		       b0 08		      bcs	kn_vtry
+    100  729c				   kn_down
+    101  729c		       a5 87		      lda	ky
+    102  729e		       c9 87		      cmp	#TOP_MAX
+    103  72a0		       b0 17		      bcs	kn_pose	; at the bottom: he
+    104  72a2							; stays
+    105  72a2		       69 02		      adc	#2	; (carry is clear)
+    106  72a4				   kn_vtry
+    107  72a4		       85 95		      sta	ny
+    108  72a6		       a5 86		      lda	kx
+    109  72a8		       85 94		      sta	nx
+    110  72aa		       20 cb f2 	      jsr	box_free
+    111  72ad		       b0 0a		      bcs	kn_pose	; stone: he stays
+    112  72af		       a5 95		      lda	ny
+    113  72b1		       85 87		      sta	ky
+    114  72b3		       e6 8a		      inc	kdist
+    115  72b5		       a9 01		      lda	#1
+    116  72b7		       85 8e		      sta	moved
+    117  72b9				   kn_pose		; walking: WALK, a pose every
+    118  72b9		       a5 8e		      lda	moved	; 8 units; standing: pose 0
+    119  72bb		       f0 0b		      beq	kn_stand
+    120  72bd		       a5 8a		      lda	kdist
+    121  72bf		       4a		      lsr
+    122  72c0		       4a		      lsr
+    123  72c1		       4a		      lsr
+    124  72c2		       29 03		      and	#3
+    125  72c4		       aa		      tax
+    126  72c5		       bd b8 f3 	      lda	WALK,x
+    127  72c8				   kn_stand
+    128  72c8		       85 89		      sta	kpose
+    129  72ca		       60		      rts
+    130  72cb
+    131  72cb							; ---------------------------------------------------------
+    132  72cb							; box_free: carry clear if Sir Roderick fits at column nx,
+    133  72cb							; top line ny: no block under his 8 x 24 box is stone. The
+    134  72cb							; box touches block columns (nx + 3) / 8 and (nx + 10) / 8,
+    135  72cb							; block rows ny / 16, (ny + 12) / 16 and (ny + 23) / 16
+    136  72cb							; (24 lines can touch three rows of 16, never four).
+    137  72cb
+    138  72cb				   box_free
+    139  72cb		       a5 94		      lda	nx
+    140  72cd		       18		      clc
+    141  72ce		       69 03		      adc	#FIRST_PIXEL
+    142  72d0		       4a		      lsr
+    143  72d1		       4a		      lsr
+    144  72d2		       4a		      lsr
+    145  72d3		       85 96		      sta	bc0	; left edge
+    146  72d5		       a5 94		      lda	nx
+    147  72d7		       18		      clc
+    148  72d8		       69 0a		      adc	#FIRST_PIXEL+KNIGHT_W-1
+    149  72da		       4a		      lsr
+    150  72db		       4a		      lsr
+    151  72dc		       4a		      lsr
+    152  72dd		       85 97		      sta	bc1	; right edge
+    153  72df		       a5 95		      lda	ny
+    154  72e1		       20 f5 f2 	      jsr	bf_row	; top line
+    155  72e4		       b0 2b		      bcs	bf_done
+    156  72e6		       a5 95		      lda	ny
+    157  72e8		       18		      clc
+    158  72e9		       69 0c		      adc	#KNIGHT_H/2
+    159  72eb		       20 f5 f2 	      jsr	bf_row	; middle
+    160  72ee		       b0 21		      bcs	bf_done
+    161  72f0		       a5 95		      lda	ny
+    162  72f2		       18		      clc
+    163  72f3		       69 17		      adc	#KNIGHT_H-1	; bottom line, and back
+    164  72f5		       4a	   bf_row     lsr		; A: a line of the box
+    165  72f6		       4a		      lsr
+    166  72f7		       4a		      lsr
+    167  72f8		       4a		      lsr		; its block row (0-9)
+    168  72f9		       85 98		      sta	br
+    169  72fb		       0a		      asl		; (clears the carry)
+    170  72fc		       65 98		      adc	br
+    171  72fe		       85 98		      sta	br	; 3 x the row: its byte 0
+    172  7300		       a5 96		      lda	bc0
+    173  7302		       20 12 f3 	      jsr	wall
+    174  7305		       d0 09		      bne	bf_stone
+    175  7307		       a5 97		      lda	bc1
+    176  7309		       20 12 f3 	      jsr	wall
+    177  730c		       d0 02		      bne	bf_stone
+    178  730e		       18		      clc		; free
+    179  730f		       60		      rts
+    180  7310				   bf_stone
+    181  7310		       38		      sec
+    182  7311				   bf_done
+    183  7311		       60		      rts
+    184  7312
+    185  7312							; wall: Z clear (bne) if block column A (0-19) is stone in
+    186  7312							; the block row whose first byte is br. The collision map
+    187  7312							; has three bytes a row, the whole width (the plug closes
+    188  7312							; one side only): columns 0-7 in the first byte, 8-15 in
+    189  7312							; the second, 16-19 in the third, the first column in
+    190  7312							; bit 7.
+    191  7312		       aa	   wall       tax		; the column
+    192  7313		       4a		      lsr
+    193  7314		       4a		      lsr
+    194  7315		       4a		      lsr		; its byte in the row, 0-2
+    195  7316		       18		      clc
+    196  7317		       65 98		      adc	br
+    197  7319		       a8		      tay
+    198  731a		       8a		      txa
+    199  731b		       29 07		      and	#7	; its bit
+    200  731d		       aa		      tax
+    201  731e		       b1 92		      lda	(cmap),y
+    202  7320		       3d 24 f3 	      and	BITS,x
+    203  7323		       60		      rts
+    204  7324
+    205  7324		       80 40 20 10*BITS       .byte.b	$80, $40, $20, $10, $08, $04, $02, $01
+    206  732c
+    207  732c							; ---------------------------------------------------------
+    208  732c							; blade: where missile 0 goes. In the thrust it is 8 pixels
+    209  732c							; beside the hand: right of the figure facing right, left
+    210  732c							; of it facing left; near the edge of the screen 4, 2 or 1
+    211  732c							; (NUSIZ0 bits 4-5). Otherwise it is hidden: RESMP0 = 2
+    212  732c							; keeps it on player 0, switched off.
+    213  732c
+    214  732c				   blade
+    215  732c		       a9 02		      lda	#2
+    216  732e		       85 91		      sta	swres	; hidden
+    217  7330		       a5 89		      lda	kpose
+    218  7332		       c9 03		      cmp	#THRUST_POSE
+    219  7334		       d0 41		      bne	bl_done
+    220  7336		       a2 03		      ldx	#3	; width: 8 pixels
+    221  7338		       a5 88		      lda	kdir
+    222  733a		       d0 1a		      bne	bl_left
+    223  733c		       a5 86		      lda	kx	; first pixel right of him
+    224  733e		       18		      clc
+    225  733f		       69 0b		      adc	#FIRST_PIXEL+KNIGHT_W
+    226  7341		       c9 a0		      cmp	#160
+    227  7343		       b0 32		      bcs	bl_done	; no room at all: hidden
+    228  7345		       c9 99		      cmp	#160-7
+    229  7347		       90 1c		      bcc	bl_set	; 8 pixels
+    230  7349		       ca		      dex
+    231  734a		       c9 9d		      cmp	#160-3
+    232  734c		       90 17		      bcc	bl_set	; 4
+    233  734e		       ca		      dex
+    234  734f		       c9 9f		      cmp	#160-1
+    235  7351		       90 12		      bcc	bl_set	; 2
+    236  7353		       ca		      dex		; 1
+    237  7354		       b0 0f		      bcs	bl_set
+    238  7356				   bl_left		; it ends at pixel kx + 2
+    239  7356		       a5 86		      lda	kx
+    240  7358		       38		      sec
+    241  7359		       e9 05		      sbc	#KNIGHT_W-FIRST_PIXEL
+    242  735b		       b0 08		      bcs	bl_set	; 8 pixels from kx - 5
+    243  735d		       ca		      dex
+    244  735e		       69 04		      adc	#4	; kx - 1 (carry clear)
+    245  7360		       b0 03		      bcs	bl_set	; 4 pixels, if kx >= 1
+    246  7362		       ca		      dex
+    247  7363		       a9 01		      lda	#1	; kx = 0: 2 pixels, 1 and 2
+    248  7365				   bl_set		; A: first pixel, X: width
+    249  7365		       38		      sec
+    250  7366		       e9 02		      sbc	#M_OFFSET	; the column that puts it
+    251  7368		       b0 02		      bcs	bl_col	; there
+    252  736a		       69 a0		      adc	#160	; (round the screen)
+    253  736c		       85 8f	   bl_col     sta	swx
+    254  736e		       bd 78 f3 	      lda	BLADE_NUS,x
+    255  7371		       85 90		      sta	swnus
+    256  7373		       a9 00		      lda	#0
+    257  7375		       85 91		      sta	swres	; shown
+    258  7377				   bl_done
+    259  7377		       60		      rts
+    260  7378
+    261  7378		       00 10 20 30 BLADE_NUS  .byte.b	$00, $10, $20, $30	; 1, 2, 4, 8 pixels
+------- FILE scalecrown.asm
+------- FILE hud.asm LEVEL 2 PASS 2
+      0  737c					      include	"hud.asm"
+      1  737c							; hud.asm - bank 7: the HUD, 32 lines above the room
+      2  737c							;
+      3  737c							; Entered right after the WSYNC that ends the VBLANK, at
+      4  737c							; cycle 3 of the first visible line. Draws TOP_BLANK black
+      5  737c							; lines (PAL only), then the HUD:
+      6  737c							;   lines 0-25   black
+      7  737c							;   lines 26-28  Sir Roderick to his column
+      8  737c							; and goes on to bank 0 (room_kernel.asm) in line 28.
+      9  737c							;
+     10  737c							; Cycle counts in the comments: the cycle at which a store
+     11  737c							; writes, counted from 0 at the start of the line.
+     12  737c
+     13  737c				   hud
+     14  737c		       a9 00		      lda	#0
+     15  737e		       85 01		      sta	VBLANK	; the picture starts
+     16  7380					      IF	TOP_BLANK
+     17  7380		       a0 12		      ldy	#TOP_BLANK
+     18  7382		       85 02	   hu_top     sta	WSYNC
+     19  7384		       88		      dey
+     20  7385		       d0 fb		      bne	hu_top
+     21  7387					      ENDIF
+     22  7387		       a0 19		      ldy	#25	; lines 0-24: black
+     23  7389				   hu_black
+     24  7389		       85 02		      sta	WSYNC
+     25  738b		       88		      dey
+     26  738c		       d0 fb		      bne	hu_black
+     27  738e		       a5 86		      lda	kx
+     28  7390		       85 02		      sta	WSYNC	; (the end of line 25)
+     29  7392							; line 26: Sir Roderick to column kx, as place does
+     30  7392							; it (the stores take 4 cycles, like sta HMP0,x)
+     31  7392		       38		      sec
+     32  7393		       e9 0f	   hu_p0      sbc	#15
+     33  7395		       b0 fc		      bcs	hu_p0	; (hu_p0)
+     34  7397		       49 07		      eor	#7
+     35  7399		       0a		      asl
+     36  739a		       0a		      asl
+     37  739b		       0a		      asl
+     38  739c		       0a		      asl
+     39  739d		       8d 20 00 	      sta.w	HMP0
+     40  73a0		       8d 10 00 	      sta.w	RESP0	; 68 at most (kx <= 149)
+     41  73a3		       85 02		      sta	WSYNC	; 71 at most
+     42  73a5							; line 27: empty
+     43  73a5		       85 02		      sta	WSYNC
+     44  73a7							; line 28: the fine moves, the room's settings
+     45  73a7		       85 2a		      sta	HMOVE	;  2
+     46  73a9		       a5 88		      lda	kdir
+     47  73ab		       85 0b		      sta	REFP0
+     48  73ad		       a9 00		      lda	#0
+     49  73af		       85 06		      sta	COLUP0
+     50  73b1		       a5 90		      lda	swnus
+     51  73b3		       85 04		      sta	NUSIZ0	; the width of the blade
+     52  73b5		       4c c0 1f 	      jmp	TO_ROOM	; bank 0
+------- FILE scalecrown.asm
+------- FILE bank7.asm LEVEL 2 PASS 2
+      0  73b8					      include	"bank7.asm"
+      1  73b8							; generated by build_assets.py - bank 7
+      2  73b8
+      3  73b8							; speeds and times of each television (rules.py):
+      4  73b8							; whole part and fraction (1/256) per frame
+      5  73b8				  -	      IF	!PAL
+      6  73b8				  -H_INT      =	1
+      7  73b8				  -H_FRAC     =	128
+      8  73b8				  -V_INT      =	0
+      9  73b8				  -V_FRAC     =	205
+     10  73b8				  -THRUST_FRAMES =	12
+     11  73b8				  -BITE_FRAMES =	60
+     12  73b8				  -GO_FRAMES  =	60
+     13  73b8				  -KSTEP_FRAC =	81
+     14  73b8				  -VEN_INT    =	1
+     15  73b8				  -VEN_FRAC   =	222
+     16  73b8				  -KHIT_FRAMES =	30
+     17  73b8				  -PARRY_FRAMES =	15
+     18  73b8				  -STUN_FRAMES =	30
+     19  73b8				  -RESPAWN_FRAMES =	240
+     20  73b8				  -VIC_FRAMES =	120
+     21  73b8				  -SPIT_FIRST =	96
+     22  73b8				  -END_FRAMES =	60
+     23  73b8					      ENDIF
+     24  73b8					      IF	PAL
+     25  73b8		       00 01	   H_INT      =	1
+     26  73b8		       00 cd	   H_FRAC     =	205
+     27  73b8		       00 00	   V_INT      =	0
+     28  73b8		       00 f6	   V_FRAC     =	246
+     29  73b8		       00 0a	   THRUST_FRAMES =	10
+     30  73b8		       00 32	   BITE_FRAMES =	50
+     31  73b8		       00 32	   GO_FRAMES  =	50
+     32  73b8		       00 61	   KSTEP_FRAC =	97
+     33  73b8		       00 02	   VEN_INT    =	2
+     34  73b8		       00 3d	   VEN_FRAC   =	61
+     35  73b8		       00 19	   KHIT_FRAMES =	25
+     36  73b8		       00 0c	   PARRY_FRAMES =	12
+     37  73b8		       00 19	   STUN_FRAMES =	25
+     38  73b8		       00 c8	   RESPAWN_FRAMES =	200
+     39  73b8		       00 64	   VIC_FRAMES =	100
+     40  73b8		       00 50	   SPIT_FIRST =	80
+     41  73b8		       00 32	   END_FRAMES =	50
+     42  73b8					      ENDIF
+     43  73b8		       00 49	   START_X    =	73
+     44  73b8		       00 11	   START_TOP  =	17
+     45  73b8		       00 01	   START_ROOM =	1
+     46  73b8		       00 04	   GRID       =	4
+     47  73b8		       00 95	   X_MAX      =	149
+     48  73b8		       00 01	   TOP_MIN    =	1
+     49  73b8		       00 87	   TOP_MAX    =	135
+     50  73b8		       00 08	   STRIDE     =	8
+     51  73b8		       00 0c	   ENERGY_FULL =	12
+     52  73b8		       00 03	   THRUST_POSE =	3
+     53  73b8
+     54  73b8							; poses of the walk, a pose every STRIDE
+     55  73b8				   WALK
+     56  73b8		       01 00 02 00	      .byte.b	$01,$00,$02,$00
+     57  73bc							; colours: the scheme of each room; for a scheme the
+     58  73bc							; COLUBK table of the two frames of the water and
+     59  73bc							; the COLUPF table (a byte before its level's table)
+     60  73bc				   SCHEME
+     61  73bc		       00 00 00 00*	      .byte.b	$00,$00,$00,$00,$02,$02,$02,$01
+     62  73c4		       03 03 03 03*	      .byte.b	$03,$03,$03,$03,$04,$05,$05,$05
+     63  73cc				   CB0_LO
+     64  73cc		       2e ce 4e 	      .byte.b	<(RC_1_0), <(RC_2_0), <(RC_FLAME+0)
+     65  73cf		       6e ae 4f 	      .byte.b	<(RC_3_0), <(RC_4_0), <(RC_FLAME+1)
+     66  73d2				   CB0_HI
+     67  73d2		       16 16 19 	      .byte.b	>(RC_1_0), >(RC_2_0), >(RC_FLAME+0)
+     68  73d5		       17 18 19 	      .byte.b	>(RC_3_0), >(RC_4_0), >(RC_FLAME+1)
+     69  73d8				   CP_LO
+     70  73d8		       2d cd cd 	      .byte.b	<(RC_1_0-1), <(RC_2_0-1), <(RC_2_0-1)
+     71  73db		       6d ad ad 	      .byte.b	<(RC_3_0-1), <(RC_4_0-1), <(RC_4_0-1)
+     72  73de				   CP_HI
+     73  73de		       16 16 16 	      .byte.b	>(RC_1_0-1), >(RC_2_0-1), >(RC_2_0-1)
+     74  73e1		       17 18 18 	      .byte.b	>(RC_3_0-1), >(RC_4_0-1), >(RC_4_0-1)
+     75  73e4							; collision maps: 10 rows of 3 bytes, block 0 in bit
+     76  73e4							; 7 of the first byte, block 8 in bit 7 of the second,
+     77  73e4							; block 16 in bit 7 of the third
+     78  73e4				   CM_0
+     79  73e4		       ff ff f0 80*	      .byte.b	$FF,$FF,$F0,$80,$00,$10,$B1,$08,$D0
+     80  73ed		       a0 00 50 80*	      .byte.b	$A0,$00,$50,$80,$00,$00,$80,$00,$00
+     81  73f6		       81 98 10 b1*	      .byte.b	$81,$98,$10,$B1,$98,$D0,$80,$00,$10
+     82  73ff		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+     83  7402				   CM_1
+     84  7402		       ff 0f f0 80*	      .byte.b	$FF,$0F,$F0,$80,$00,$10,$98,$01,$90
+     85  740b		       99 99 90 00*	      .byte.b	$99,$99,$90,$00,$00,$00,$00,$00,$00
+     86  7414		       99 99 90 98*	      .byte.b	$99,$99,$90,$98,$01,$90,$80,$00,$10
+     87  741d		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+     88  7420				   CM_2
+     89  7420		       ff ff f0 80*	      .byte.b	$FF,$FF,$F0,$80,$00,$10,$91,$08,$90
+     90  7429		       91 08 90 00*	      .byte.b	$91,$08,$90,$00,$00,$00,$00,$00,$00
+     91  7432		       91 08 90 91*	      .byte.b	$91,$08,$90,$91,$08,$90,$80,$00,$10
+     92  743b		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+     93  743e				   CM_3
+     94  743e		       ff ff f0 80*	      .byte.b	$FF,$FF,$F0,$80,$00,$10,$BC,$03,$D0
+     95  7447		       80 00 10 00*	      .byte.b	$80,$00,$10,$00,$00,$10,$00,$00,$10
+     96  7450		       80 00 10 9b*	      .byte.b	$80,$00,$10,$9B,$0D,$90,$9A,$05,$90
+     97  7459		       ff 0f f0 	      .byte.b	$FF,$0F,$F0
+     98  745c				   CM_4
+     99  745c		       ff ff f0 aa*	      .byte.b	$FF,$FF,$F0,$AA,$05,$50,$80,$00,$10
+    100  7465		       8c 03 10 80*	      .byte.b	$8C,$03,$10,$80,$00,$00,$80,$00,$00
+    101  746e		       8c 03 10 80*	      .byte.b	$8C,$03,$10,$80,$00,$10,$AA,$05,$50
+    102  7477		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+    103  747a				   CM_5
+    104  747a		       ff ff f0 80*	      .byte.b	$FF,$FF,$F0,$80,$00,$10,$B9,$F9,$D0
+    105  7483		       b9 f9 d0 00*	      .byte.b	$B9,$F9,$D0,$00,$00,$00,$00,$00,$00
+    106  748c		       99 09 90 99*	      .byte.b	$99,$09,$90,$99,$09,$90,$81,$08,$10
+    107  7495		       ff 0f f0 	      .byte.b	$FF,$0F,$F0
+    108  7498				   CM_6
+    109  7498		       ff ff f0 80*	      .byte.b	$FF,$FF,$F0,$80,$00,$10,$B9,$99,$D0
+    110  74a1		       a1 98 50 00*	      .byte.b	$A1,$98,$50,$00,$00,$00,$00,$00,$00
+    111  74aa		       a1 98 50 b9*	      .byte.b	$A1,$98,$50,$B9,$99,$D0,$80,$00,$10
+    112  74b3		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+    113  74b6				   CM_7
+    114  74b6		       ff 0f f0 80*	      .byte.b	$FF,$0F,$F0,$80,$00,$10,$B0,$00,$D0
+    115  74bf		       b3 0c d0 00*	      .byte.b	$B3,$0C,$D0,$00,$00,$10,$00,$00,$10
+    116  74c8		       b3 0c d0 b0*	      .byte.b	$B3,$0C,$D0,$B0,$00,$D0,$80,$00,$10
+    117  74d1		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+    118  74d4				   CM_8
+    119  74d4		       ff ff f0 80*	      .byte.b	$FF,$FF,$F0,$80,$00,$10,$99,$99,$90
+    120  74dd		       99 99 90 80*	      .byte.b	$99,$99,$90,$80,$00,$00,$80,$00,$00
+    121  74e6		       99 09 90 99*	      .byte.b	$99,$09,$90,$99,$09,$90,$80,$00,$10
+    122  74ef		       ff 0f f0 	      .byte.b	$FF,$0F,$F0
+    123  74f2				   CM_9
+    124  74f2		       ff 0f f0 80*	      .byte.b	$FF,$0F,$F0,$80,$00,$10,$B9,$09,$D0
+    125  74fb		       b9 09 d0 00*	      .byte.b	$B9,$09,$D0,$00,$00,$00,$00,$00,$00
+    126  7504		       b9 99 d0 b9*	      .byte.b	$B9,$99,$D0,$B9,$99,$D0,$80,$00,$10
+    127  750d		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+    128  7510				   CM_10
+    129  7510		       ff ff f0 80*	      .byte.b	$FF,$FF,$F0,$80,$00,$10,$A9,$09,$50
+    130  7519		       a9 09 50 00*	      .byte.b	$A9,$09,$50,$00,$00,$00,$00,$00,$00
+    131  7522		       a9 09 50 a9*	      .byte.b	$A9,$09,$50,$A9,$09,$50,$80,$00,$10
+    132  752b		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+    133  752e				   CM_11
+    134  752e		       ff ff f0 80*	      .byte.b	$FF,$FF,$F0,$80,$00,$10,$B6,$F6,$D0
+    135  7537		       b6 f6 d0 00*	      .byte.b	$B6,$F6,$D0,$00,$00,$10,$00,$00,$10
+    136  7540		       b6 f6 d0 b6*	      .byte.b	$B6,$F6,$D0,$B6,$F6,$D0,$80,$00,$10
+    137  7549		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+    138  754c				   CM_12
+    139  754c		       ff 0f f0 80*	      .byte.b	$FF,$0F,$F0,$80,$00,$10,$BD,$0B,$D0
+    140  7555		       a1 08 50 80*	      .byte.b	$A1,$08,$50,$80,$00,$00,$80,$00,$00
+    141  755e		       af 0f 50 a0*	      .byte.b	$AF,$0F,$50,$A0,$00,$50,$80,$00,$10
+    142  7567		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+    143  756a				   CM_13
+    144  756a		       ff ff f0 80*	      .byte.b	$FF,$FF,$F0,$80,$00,$10,$98,$01,$90
+    145  7573		       9b 9d 90 00*	      .byte.b	$9B,$9D,$90,$00,$00,$00,$00,$00,$00
+    146  757c		       9b 9d 90 98*	      .byte.b	$9B,$9D,$90,$98,$01,$90,$80,$00,$10
+    147  7585		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+    148  7588				   CM_14
+    149  7588		       ff ff f0 80*	      .byte.b	$FF,$FF,$F0,$80,$00,$10,$A0,$00,$50
+    150  7591		       a7 9e 50 00*	      .byte.b	$A7,$9E,$50,$00,$00,$00,$00,$00,$00
+    151  759a		       a7 9e 50 a0*	      .byte.b	$A7,$9E,$50,$A0,$00,$50,$80,$00,$10
+    152  75a3		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+    153  75a6				   CM_15
+    154  75a6		       ff ff f0 80*	      .byte.b	$FF,$FF,$F0,$80,$F0,$10,$90,$00,$90
+    155  75af		       80 00 10 00*	      .byte.b	$80,$00,$10,$00,$00,$10,$00,$00,$10
+    156  75b8		       80 00 10 90*	      .byte.b	$80,$00,$10,$90,$00,$90,$80,$00,$10
+    157  75c1		       ff ff f0 	      .byte.b	$FF,$FF,$F0
+    158  75c4				   CM_LO
+    159  75c4		       e4 02 20 	      .byte.b	<(CM_0), <(CM_1), <(CM_2)
+    160  75c7		       3e 5c 7a 	      .byte.b	<(CM_3), <(CM_4), <(CM_5)
+    161  75ca		       98 b6 d4 	      .byte.b	<(CM_6), <(CM_7), <(CM_8)
+    162  75cd		       f2 10 2e 	      .byte.b	<(CM_9), <(CM_10), <(CM_11)
+    163  75d0		       4c 6a 88 	      .byte.b	<(CM_12), <(CM_13), <(CM_14)
+    164  75d3		       a6		      .byte.b	<(CM_15)
+    165  75d4				   CM_HI
+    166  75d4		       f3 f4 f4 	      .byte.b	>(CM_0), >(CM_1), >(CM_2)
+    167  75d7		       f4 f4 f4 	      .byte.b	>(CM_3), >(CM_4), >(CM_5)
+    168  75da		       f4 f4 f4 	      .byte.b	>(CM_6), >(CM_7), >(CM_8)
+    169  75dd		       f4 f5 f5 	      .byte.b	>(CM_9), >(CM_10), >(CM_11)
+    170  75e0		       f5 f5 f5 	      .byte.b	>(CM_12), >(CM_13), >(CM_14)
+    171  75e3		       f5		      .byte.b	>(CM_15)
+    172  75e4							; pointer bases of the figures: data + h - 160, so that
+    173  75e4							; pointer = base + top line
+    174  75e4				   KG_LO
+    175  75e4		       ff		      .byte.b	<(KFG+135+24-160)
+    176  75e5		       9e		      .byte.b	<(KFG+294+24-160)
+    177  75e6		       3d		      .byte.b	<(KFG+453+24-160)
+    178  75e7		       dc		      .byte.b	<(KFG+612+24-160)
+    179  75e8				   KG_HI
+    180  75e8		       10		      .byte.b	>(KFG+135+24-160)
+    181  75e9		       11		      .byte.b	>(KFG+294+24-160)
+    182  75ea		       12		      .byte.b	>(KFG+453+24-160)
+    183  75eb		       12		      .byte.b	>(KFG+612+24-160)
+    184  75ec				   KC_LO
+    185  75ec		       1a		      .byte.b	<(KN_COL0+24-160)
+    186  75ed		       1a		      .byte.b	<(KN_COL0+24-160)
+    187  75ee		       1a		      .byte.b	<(KN_COL0+24-160)
+    188  75ef		       7b		      .byte.b	<(KFG+771+24-160)
+    189  75f0				   KC_HI
+    190  75f0		       14		      .byte.b	>(KN_COL0+24-160)
+    191  75f1		       14		      .byte.b	>(KN_COL0+24-160)
+    192  75f2		       14		      .byte.b	>(KN_COL0+24-160)
+    193  75f3		       13		      .byte.b	>(KFG+771+24-160)
+    194  75f4
+------- FILE scalecrown.asm
+    235  75f4				   bank7_end
+      0  75f4					      TAIL	7
+      1  7faa					      ORG	7*$1000+$FAA
+      2  7faa					      RORG	$1FAA+7*$2000
+      3  7faa		       8d fa 1f 	      sta	F4B6
+      4  7fad		       4c 00 d1 	      jmp	ends_kernel
+      5  7fb0		       8d f6 1f 	      sta	F4B2
+      6  7fb3		       4c 00 51 	      jmp	throne_kernel
+      7  7fb6		       8d f8 1f 	      sta	F4B4
+      8  7fb9		       20 00 91 	      jsr	things
+      9  7fbc		       8d fb 1f 	      sta	F4B7
+     10  7fbf		       60		      rts
+     11  7fc0		       8d f4 1f 	      sta	F4B0
+     12  7fc3		       4c ba 14 	      jmp	room_kernel
+     13  7fc6		       8d f5 1f 	      sta	F4B1
+     14  7fc9		       4c 00 31 	      jmp	title_kernel
+     15  7fcc		       8d fb 1f 	      sta	F4B7
+     16  7fcf		       4c 16 f1 	      jmp	kernel_done
+     17  7fd2		       8d f9 1f 	      sta	F4B5
+     18  7fd5		       20 00 b1 	      jsr	sound
+     19  7fd8		       8d fb 1f 	      sta	F4B7
+     20  7fdb		       60		      rts
+     21  7fe0					      ORG	7*$1000+$FE0
+     22  7fe0					      RORG	$1FE0+7*$2000
+     23  7fe0		       8d fb 1f 	      sta	F4B7
+     24  7fe3		       4c 00 f1 	      jmp	start
+     25  7fe6		       8d f7 1f 	      sta	F4B3
+     26  7fe9		       20 00 71 	      jsr	room_copy
+     27  7fec		       8d fb 1f 	      sta	F4B7
+     28  7fef		       60		      rts
+     29  7ffc					      ORG	7*$1000+$FFC
+     30  7ffc					      RORG	$1FFC+7*$2000
+     31  7ffc		       e0 ff		      .word.w	$1FE0+7*$2000
+     32  7ffe		       e0 ff		      .word.w	$1FE0+7*$2000

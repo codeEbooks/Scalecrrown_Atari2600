@@ -1,0 +1,62 @@
+{
+ "id": "5x",
+ "step": 5,
+ "kind": "break",
+ "title": "The seam without RESP1",
+ "text": "Take out the RESP1 of the seam: player 1 is never moved to the serpent of the band below, which is drawn at the column of the thing above.",
+ "change": [
+  {
+   "file": "game/src/room_kernel.asm",
+   "line": "sta     RESP1           ; 19 + 5 x zcoarse (24-69)",
+   "becomes": "(taken out)"
+  }
+ ],
+ "frames": 223,
+ "until": "room 2: the serpent killed, 100 points",
+ "claims": {
+  "timing": true,
+  "seam": false,
+  "ram": "same",
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 115,
+  "first_ram_difference": null,
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 2,
+  "pictures": 3
+ },
+ "picture_frame": 112,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "seam",
+   "passed": true
+  },
+  {
+   "check": "ram the same",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 9
+}

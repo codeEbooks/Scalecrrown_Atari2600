@@ -1,0 +1,57 @@
+{
+ "id": "3b",
+ "step": 3,
+ "kind": "variant",
+ "title": "A red score",
+ "text": "The colour of the digits of the HUD, in look.py.",
+ "change": [
+  {
+   "file": "game/assets/look.py",
+   "line": "HUD_SCORE_COLOUR = 0x1E",
+   "becomes": "HUD_SCORE_COLOUR = 0x46"
+  }
+ ],
+ "frames": 813,
+ "until": "room 0 RUBBLE HALL, from the west",
+ "claims": {
+  "timing": true,
+  "ram": "same",
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": null,
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 12,
+  "pictures": 12
+ },
+ "picture_frame": 783,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram the same",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 26
+}

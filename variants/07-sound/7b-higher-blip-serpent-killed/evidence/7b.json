@@ -1,0 +1,54 @@
+{
+ "id": "7b",
+ "step": 7,
+ "kind": "variant",
+ "title": "A higher blip for a serpent killed",
+ "text": "The first frames of the effect of a kill with a lower AUDF (sfx.py): the blip starts higher.",
+ "change": [
+  {
+   "file": "game/assets/sfx.py",
+   "line": "\"kill\": [(12, 16, 12), (12, 13, 12), (12, 10, 11),",
+   "becomes": "\"kill\": [(12, 12, 12), (12, 9, 12), (12, 6, 11),"
+  }
+ ],
+ "frames": 357,
+ "until": "room 2 PILLAR WALK, a corridor",
+ "claims": {
+  "timing": true,
+  "ram": "same",
+  "audio": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": null,
+  "audio_differs": true,
+  "step_lines": [
+   262
+  ]
+ },
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram the same",
+   "passed": true
+  },
+  {
+   "check": "audio",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 10
+}

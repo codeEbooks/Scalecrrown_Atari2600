@@ -1,0 +1,68 @@
+{
+ "id": "9x",
+ "step": 9,
+ "kind": "break",
+ "title": "A serpent that never comes back",
+ "text": "Take out the jsr respawn: the count of a dead serpent reaches 0 and nothing happens.",
+ "change": [
+  {
+   "file": "game/src/things.asm",
+   "line": "jsr     respawn",
+   "becomes": "(taken out)"
+  }
+ ],
+ "frames": 1217,
+ "until": "room 2: the serpent back, at the end of its path farther from him",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "SC+64",
+   "SC+60",
+   "SC+61",
+   "SC+62",
+   "SC+63",
+   "SC+66",
+   "zcoarse"
+  ],
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 1185,
+   "var": "zcoarse"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 1,
+  "pictures": 21
+ },
+ "picture_frame": 1187,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in SC+64, SC+60, SC+61, SC+62, SC+63, SC+66, zcoarse",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 50
+}

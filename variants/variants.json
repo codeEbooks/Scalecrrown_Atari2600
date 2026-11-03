@@ -1,0 +1,817 @@
+{
+ "1a": {
+  "step": 1,
+  "step_folder": "01-first-room",
+  "folder": "variants/01-first-room/1a-upper-crypt-in-blue",
+  "kind": "variant",
+  "chapter": 4,
+  "title": "The Upper Crypt in blue",
+  "change": [
+   {
+    "file": "game/assets/rooms.py",
+    "line": "            floor=0xC0, floor_lum=(0, 6), light=80, shimmer=False,",
+    "becomes": "            floor=0x80, floor_lum=(0, 6), light=80, shimmer=False,"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "f391e8831235701d454d162609cc6bd345a416f7363d609beb24a66e100545e2"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "3508c6d864570ffbc8058845bb73d1c77dc5a9d3cb906645420574399a84fb34"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 48,
+   "saw": "262 lines; the RAM the same; 2 of 2 pictures"
+  }
+ },
+ "1b": {
+  "step": 1,
+  "step_folder": "01-first-room",
+  "folder": "variants/01-first-room/1b-sir-roderick-comes-in-further-west",
+  "kind": "variant",
+  "chapter": 2,
+  "title": "Sir Roderick comes in further west",
+  "change": [
+   {
+    "file": "game/assets/dungeon.py",
+    "line": "START = dict(room=1, x=73, top=17, facing=\"right\")",
+    "becomes": "START = dict(room=1, x=41, top=17, facing=\"right\")"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "75c50e9d636184b86de2c7722ef00ec1fddcc485aeb9fa3e73458b1359db9089"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "ec2476d78ff67ca5bbf9573ae66a147c2729fbfd3e3bccb71dc0f2472bdae1c1"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 48,
+   "saw": "262 lines; `kx` from frame 1; 2 of 2 pictures"
+  }
+ },
+ "1x": {
+  "step": 1,
+  "step_folder": "01-first-room",
+  "folder": "variants/01-first-room/1x-wsync-forgotten",
+  "kind": "break",
+  "chapter": 3,
+  "title": "A WSYNC forgotten",
+  "change": [
+   {
+    "file": "game/src/room_kernel.asm",
+    "line": "k_top:  sta     WSYNC",
+    "becomes": "k_top:"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "21bacd886bdb419e77c0f204d794b584299106d99fc2d89301c8ed46e860eca5"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "7f7c7742746407d7272bb0752359e4768824705d07d112ae602b270cd6bb9100"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 48,
+   "saw": "261 lines; 2 of 2 pictures"
+  }
+ },
+ "2a": {
+  "step": 2,
+  "step_folder": "02-knight",
+  "folder": "variants/02-knight/2a-faster-walk",
+  "kind": "variant",
+  "chapter": 5,
+  "title": "A faster walk",
+  "change": [
+   {
+    "file": "game/assets/rules.py",
+    "line": "WALK_PX_S = 60          # pixels a second, left and right",
+    "becomes": "WALK_PX_S = 90          # pixels a second, left and right"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "53c22baee85be05fa632a9eb8a41a554c2d5d7c77cd8dcd4a347c2ad314a1426"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "b0c61a9ebb5c3b32c3aba0de9d01d3a69dae9d656169b07b421b66801559e9cf"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 204,
+   "saw": "262 lines; `hacc` from frame 46; 3 of 4 pictures"
+  }
+ },
+ "2b": {
+  "step": 2,
+  "step_folder": "02-knight",
+  "folder": "variants/02-knight/2b-longer-thrust",
+  "kind": "variant",
+  "chapter": 5,
+  "title": "A longer thrust",
+  "change": [
+   {
+    "file": "game/assets/rules.py",
+    "line": "THRUST_S = 0.2          # the thrust of the sword, seconds",
+    "becomes": "THRUST_S = 0.4          # the thrust of the sword, seconds"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "483e438b088663c12b63028c77d8a214a6050bb2446adf19d269d56eb4f614dd"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "583d82226d81a2b7d888a702fe7c34325bae4441af6681b52e6424f0910e9202"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 204,
+   "saw": "262 lines; `thrust` from frame 171"
+  }
+ },
+ "2x": {
+  "step": 2,
+  "step_folder": "02-knight",
+  "folder": "variants/02-knight/2x-hmove-forgotten",
+  "kind": "break",
+  "chapter": 5,
+  "title": "The HMOVE forgotten",
+  "change": [
+   {
+    "file": "game/src/hud.asm",
+    "line": "        sta     HMOVE           ;  2",
+    "becomes": ""
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "bb60380bf2f06a31057535f64dffc50613e2f1a09b43c25da309a6225cf11e50"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "1ff67959055eccebb90fc6dc910b9577e9bc61f671e749e577483ac526bc75ab"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 190,
+   "saw": "262 lines; the RAM the same; 3 of 3 pictures"
+  }
+ },
+ "3a": {
+  "step": 3,
+  "step_folder": "03-dungeon",
+  "folder": "variants/03-dungeon/3a-water-shimmers-twice-as-fast",
+  "kind": "variant",
+  "chapter": 6,
+  "title": "The water shimmers twice as fast",
+  "change": [
+   {
+    "file": "game/src/main.asm",
+    "line": "        and     #8",
+    "becomes": "        and     #4"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "1ba91a626483f3b8843984e9a9a19a32c53a849c7ad019f101ca85d75f2f7976"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "600a247ab7b5e214560dc01209722d9ee59ab9661ab473bb48279a4e7f32d75b"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 1751,
+   "saw": "262 lines; the RAM the same; 1 of 22 pictures"
+  }
+ },
+ "3b": {
+  "step": 3,
+  "step_folder": "03-dungeon",
+  "folder": "variants/03-dungeon/3b-red-score",
+  "kind": "variant",
+  "chapter": 6,
+  "title": "A red score",
+  "change": [
+   {
+    "file": "game/assets/look.py",
+    "line": "HUD_SCORE_COLOUR = 0x1E",
+    "becomes": "HUD_SCORE_COLOUR = 0x46"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "23ec104c548dc16c8f83ac3128db4658f6a86aef2135d836aa9fbe4d05661744"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "16c18b888da99d1ca6a2747fe46bde0f1adfcbd44af0a83c077c5740ae804ff9"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 813,
+   "saw": "262 lines; the RAM the same; 12 of 12 pictures"
+  }
+ },
+ "3x": {
+  "step": 3,
+  "step_folder": "03-dungeon",
+  "folder": "variants/03-dungeon/3x-row-two-cycles-early",
+  "kind": "break",
+  "chapter": 6,
+  "title": "The row two cycles early",
+  "change": [
+   {
+    "file": "game/src/hud.asm",
+    "line": "        nop",
+    "becomes": ""
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "27555ec1159a063cb7ad847b4398ace1651022e15d64befffa1af2645e297d08"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "eaf82552ebd4e799561cb87ee3cf9547835e7c95b4324faf74855f3de2fca107"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 813,
+   "saw": "262 lines; the RAM the same; 12 of 12 pictures"
+  }
+ },
+ "4a": {
+  "step": 4,
+  "step_folder": "04-keys-doors",
+  "folder": "variants/04-keys-doors/4a-richer-chests",
+  "kind": "variant",
+  "chapter": 7,
+  "title": "Richer chests",
+  "change": [
+   {
+    "file": "game/assets/rules.py",
+    "line": "CHEST_POINTS = 500",
+    "becomes": "CHEST_POINTS = 1500"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "50e8f7203bacb8561e09dc556b86f8f341a25a67651e3261168b8655505db30e"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "212a2f963be9c700ebe3370df6f972b67724d34ef59ea6cec0db0b792754c2a6"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 983,
+   "saw": "262 lines; `score+1` from frame 949; 1 of 5 pictures"
+  }
+ },
+ "4b": {
+  "step": 4,
+  "step_folder": "04-keys-doors",
+  "folder": "variants/04-keys-doors/4b-spikes-stay-up-longer",
+  "kind": "variant",
+  "chapter": 7,
+  "title": "The spikes stay up longer",
+  "change": [
+   {
+    "file": "game/assets/rules.py",
+    "line": "SPIKES_UP_S = 1.0",
+    "becomes": "SPIKES_UP_S = 2.0"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "3b1f77a11fd304d793933c19284cd751ef78050f3debd9415ad6bcf75c298b2e"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "c4c0e1f27860229e3fbd548d417898361e7d9b60e6eb69387edd38cc873eced1"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 411,
+   "saw": "262 lines; `spk` from frame 229"
+  }
+ },
+ "4x": {
+  "step": 4,
+  "step_folder": "04-keys-doors",
+  "folder": "variants/04-keys-doors/4x-pf2-never-written-in-room",
+  "kind": "break",
+  "chapter": 7,
+  "title": "PF2 never written in the room",
+  "change": [
+   {
+    "file": "game/src/room_kernel.asm",
+    "line": "        sty     PF2             ; 61+ after the right half",
+    "becomes": ""
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "4ebafac6fe07e89034b9bafcd2a34d73708540c8b4762c0382a942fabafd7e49"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "2919d2a6acbeaa2a1adabb1e34c30d3335fe7cf7fc91ce0c6116c45f78846afa"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 983,
+   "saw": "262 lines; the RAM the same; 5 of 5 pictures"
+  }
+ },
+ "5a": {
+  "step": 5,
+  "step_folder": "05-serpents",
+  "folder": "variants/05-serpents/5a-slower-serpents-in-first-level",
+  "kind": "variant",
+  "chapter": 8,
+  "title": "Slower serpents in the first level",
+  "change": [
+   {
+    "file": "game/assets/rules.py",
+    "line": "SERPENT_PX_S = {1: 38, 2: 42, 3: 46, 4: 49}",
+    "becomes": "SERPENT_PX_S = {1: 20, 2: 42, 3: 46, 4: 49}"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "79f7e35d12d27f9d67ddc61b7cb9c9030e6a944a6f0745b16cd79a0b45078ba0"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "333cb27b43125d7d7a35d925306830074c35a90031e1923974d54007761bbf1b"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 220,
+   "saw": "262 lines; `SC_ACC` from frame 1"
+  }
+ },
+ "5b": {
+  "step": 5,
+  "step_folder": "05-serpents",
+  "folder": "variants/05-serpents/5b-softer-bite",
+  "kind": "variant",
+  "chapter": 9,
+  "title": "A softer bite",
+  "change": [
+   {
+    "file": "game/assets/rules.py",
+    "line": "BITE_DAMAGE = 3          # easier: 2",
+    "becomes": "BITE_DAMAGE = 1          # easier: 2"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "99ea3888f552365dfa2faa3657d12dc548275b3957ae0729c7d7005fb6c6eb6c"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "b319ecdcb199bd55e3e5cd29128bf7e2e8b396ceff6acfefff667e7b88209e6c"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 220,
+   "saw": "262 lines; `energy` from frame 188; 2 of 3 pictures"
+  }
+ },
+ "5x": {
+  "step": 5,
+  "step_folder": "05-serpents",
+  "folder": "variants/05-serpents/5x-seam-without-resp1",
+  "kind": "break",
+  "chapter": 8,
+  "title": "The seam without RESP1",
+  "change": [
+   {
+    "file": "game/src/room_kernel.asm",
+    "line": "        sta     RESP1           ; 19 + 5 x zcoarse (24-69)",
+    "becomes": ""
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "02245ddba5f131d0ba4fd10ddaec03570349af067320a9cab406fa998723f052"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "049bd8410d3ad3cfe6f1bc6e81643ae3eecbd3d8874dcdc33ec9792a7e79213f"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 223,
+   "saw": "262 lines; the RAM the same; the seam wrong; 2 of 3 pictures"
+  }
+ },
+ "6a": {
+  "step": 6,
+  "step_folder": "06-serpent-king",
+  "folder": "variants/06-serpent-king/6a-five-blows-beat-king",
+  "kind": "variant",
+  "chapter": 11,
+  "title": "Five blows beat the King",
+  "change": [
+   {
+    "file": "game/assets/rules.py",
+    "line": "KING_HITS = 10          # blows of the sword to beat him",
+    "becomes": "KING_HITS = 5           # blows of the sword to beat him"
+   },
+   {
+    "file": "game/assets/rules.py",
+    "line": "SPIT_S = (1.6, 1.5, 1.4, 1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7)",
+    "becomes": "SPIT_S = (1.6, 1.4, 1.2, 1.0, 0.8)"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "6636f1812919109e5151244fb590bf7db223fe36dff6111ea1e4e586773224f7"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "8e9ae59ed8daf63d3c1a31aded486c12f0525d606d5033f293068a0b091ad486"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 12175,
+   "saw": "262 lines; `SC_KS` from frame 11 909"
+  }
+ },
+ "6b": {
+  "step": 6,
+  "step_folder": "06-serpent-king",
+  "folder": "variants/06-serpent-king/6b-slower-venom",
+  "kind": "variant",
+  "chapter": 11,
+  "title": "Slower venom",
+  "change": [
+   {
+    "file": "game/assets/rules.py",
+    "line": "VENOM_PX_S = 112         # easier: 90",
+    "becomes": "VENOM_PX_S = 90          # easier: 90"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "1028180b70d3293d47091fd2d818f9b51d4323bfa291c4311b081f09e5df876e"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "f75241d0b82bbaf0baec319d04df889f4768c54f7848f73aae51381dce269a74"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 11746,
+   "saw": "262 lines; `SC_VA` from frame 11 698"
+  }
+ },
+ "6x": {
+  "step": 6,
+  "step_folder": "06-serpent-king",
+  "folder": "variants/06-serpent-king/6x-venom-never-switched-on",
+  "kind": "break",
+  "chapter": 10,
+  "title": "The venom never switched on",
+  "change": [
+   {
+    "file": "game/src/throne_kernel.asm",
+    "line": "        sta     ENAM1           ; 20 the venom: bit 1",
+    "becomes": "        sta     $2D             ; 20 the venom: bit 1"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "b37b33272e2052a96f5e3a07d6a2d76ed84c47ef9c47d7629b6fae27c1fc2440"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "5cadac799959259dfb533b9959c9bc1bb0c9c2f70b8b59f29e9b6b7ef9f483d9"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 11728,
+   "saw": "262 lines; the RAM the same; 1 of 29 pictures"
+  }
+ },
+ "7a": {
+  "step": 7,
+  "step_folder": "07-sound",
+  "folder": "variants/07-sound/7a-faster-theme",
+  "kind": "variant",
+  "chapter": 12,
+  "title": "A faster theme",
+  "change": [
+   {
+    "file": "game/assets/score.py",
+    "line": "BPM = 100",
+    "becomes": "BPM = 140"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "9c0324fc0ee32d19f677c9dcc9e416891e70f92ba60b41ed38f2d7f80c90b022"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "8a5131b641715590f859fe95ef33c862a7fbcd9d23a9d7b6c772e6dd99556a47"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 12339,
+   "saw": "262 lines; `mclock` from frame 1; the sound"
+  }
+ },
+ "7b": {
+  "step": 7,
+  "step_folder": "07-sound",
+  "folder": "variants/07-sound/7b-higher-blip-serpent-killed",
+  "kind": "variant",
+  "chapter": 13,
+  "title": "A higher blip for a serpent killed",
+  "change": [
+   {
+    "file": "game/assets/sfx.py",
+    "line": "    \"kill\": [(12, 16, 12), (12, 13, 12), (12, 10, 11),",
+    "becomes": "    \"kill\": [(12, 12, 12), (12, 9, 12), (12, 6, 11),"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "660ba71b96af3fdd13f0aaf363764f848c66f714618100a1a1a146f17fa9acbf"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "e7a5e9a422110552f797af4ba673cb7dfb641b555a384d1ef582fa73d41819c6"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 357,
+   "saw": "262 lines; the RAM the same; the sound"
+  }
+ },
+ "7x": {
+  "step": 7,
+  "step_folder": "07-sound",
+  "folder": "variants/07-sound/7x-hiss-left-on",
+  "kind": "break",
+  "chapter": 13,
+  "title": "A hiss left on",
+  "change": [
+   {
+    "file": "game/src/sound.asm",
+    "line": "ef_end: lda     #0",
+    "becomes": "ef_end: rts"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "84eb9179d95ffa9a345b0cb3280adfa2ec1cfca4b91c3ee2825758c3646dcdb7"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "5d6c04f33bc6f207d659cebd4c55f3663011ac9c82cbec6beb15b30cc61a353d"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 857,
+   "saw": "262 lines; `sfxi` from frame 224; the sound"
+  }
+ },
+ "8a": {
+  "step": 8,
+  "step_folder": "08-title-and-ends",
+  "folder": "variants/08-title-and-ends/8a-end-screen-waits-longer-button",
+  "kind": "variant",
+  "chapter": 14,
+  "title": "The end screen waits longer for the button",
+  "change": [
+   {
+    "file": "game/assets/rules.py",
+    "line": "END_S = 1.0",
+    "becomes": "END_S = 2.0"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "cdabfe651da2a8a3ac76c07e6e9f2fadf19a9c4521553328c65504a93e453904"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "df00275b5336e4c72239498956162250639321508485cee4bb4f7036e8acc3c1"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 13034,
+   "saw": "262 lines; `won` from frame 12 996"
+  }
+ },
+ "8b": {
+  "step": 8,
+  "step_folder": "08-title-and-ends",
+  "folder": "variants/08-title-and-ends/8b-longer-game-over",
+  "kind": "variant",
+  "chapter": 14,
+  "title": "A longer GAME OVER",
+  "change": [
+   {
+    "file": "game/assets/rules.py",
+    "line": "GAME_OVER_S = 1.0",
+    "becomes": "GAME_OVER_S = 2.0"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "f5c35c1499978a1def0d57653fa53f8d605b7122bb2b59ed58e3b628b46b01af"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "ca1cbf0f262582567c74573293cf3835eb759178c094b26126bcd07e10dfa233"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 13711,
+   "saw": "262 lines; `screen` from frame 13 679; 1 of 56 pictures"
+  }
+ },
+ "8x": {
+  "step": 8,
+  "step_folder": "08-title-and-ends",
+  "folder": "variants/08-title-and-ends/8x-lament-never-starts",
+  "kind": "break",
+  "chapter": 14,
+  "title": "The lament never starts",
+  "change": [
+   {
+    "file": "game/src/things.asm",
+    "line": "        sta     smode           ; silences what played)",
+    "becomes": ""
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "0b2c9df4a9b29fa8d180994ac8e1c2aa7803955595c5ffe0a632723d1d4c6f84"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "84b8ea108715a6de08709e7ca7afdd5f9efe5f82deee081fee6137d08735cfae"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 13711,
+   "saw": "262 lines; `vpos` from frame 13 619; the sound"
+  }
+ },
+ "9a": {
+  "step": 9,
+  "step_folder": "09-the-hunt",
+  "folder": "variants/09-the-hunt/9a-gentler-sprint",
+  "kind": "variant",
+  "chapter": 15,
+  "title": "A gentler sprint",
+  "change": [
+   {
+    "file": "game/assets/rules.py",
+    "line": "SPRINT_PX_S = {1: 50, 2: 52, 3: 54, 4: 56}",
+    "becomes": "SPRINT_PX_S = {1: 40, 2: 44, 3: 48, 4: 50}"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "57ff86b9b0c829b661f9ff36517f5ba41a7574def4651e8e25668f77fe04709e"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "7428ef6fbac6a9967b418879e1cabe93d49714b18c214d38609a1a0b44fab11f"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 977,
+   "saw": "262 lines; `SC_SPR` from frame 131"
+  }
+ },
+ "9b": {
+  "step": 9,
+  "step_folder": "09-the-hunt",
+  "folder": "variants/09-the-hunt/9b-they-come-back-sooner",
+  "kind": "variant",
+  "chapter": 15,
+  "title": "They come back sooner",
+  "change": [
+   {
+    "file": "game/assets/rules.py",
+    "line": "RESPAWN_S = 4.0",
+    "becomes": "RESPAWN_S = 2.0"
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "b3589d5adcd24d679806c249943c2994361f66432ae834b64b5149bd1bf4cf03"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "d22a161baa6e6ee299ea8099aa69d62b3e55a76266f7a4e6dbb6a9788d0bc8b3"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 1217,
+   "saw": "262 lines; `SC_GT` from frame 945"
+  }
+ },
+ "9x": {
+  "step": 9,
+  "step_folder": "09-the-hunt",
+  "folder": "variants/09-the-hunt/9x-serpent-that-never-comes-back",
+  "kind": "break",
+  "chapter": 15,
+  "title": "A serpent that never comes back",
+  "change": [
+   {
+    "file": "game/src/things.asm",
+    "line": "        jsr     respawn",
+    "becomes": ""
+   }
+  ],
+  "cartridges": {
+   "scalecrown_ntsc": {
+    "bytes": 32768,
+    "sha256": "980ad1b6833dcccc1550b97c2343e73b2e9150033d542db40b14b86547ae5fd6"
+   },
+   "scalecrown_pal": {
+    "bytes": 32768,
+    "sha256": "014480d87bae143123c490d428b0e35fbf330c1b721b65910e418cb888347788"
+   }
+  },
+  "test": {
+   "passed": true,
+   "frames": 1217,
+   "saw": "262 lines; `zcoarse` from frame 1 185; 1 of 21 pictures"
+  }
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "id": "5b",
+ "step": 5,
+ "kind": "variant",
+ "title": "A softer bite",
+ "text": "A bite takes one unit instead of three (rules.py): BITE_DAMAGE.",
+ "change": [
+  {
+   "file": "game/assets/rules.py",
+   "line": "BITE_DAMAGE = 3          # easier: 2",
+   "becomes": "BITE_DAMAGE = 1          # easier: 2"
+  }
+ ],
+ "frames": 220,
+ "until": "room 2: bitten, he flashes",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "energy"
+  ],
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 188,
+   "var": "energy"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 2,
+  "pictures": 3
+ },
+ "picture_frame": 190,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in energy",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 10
+}

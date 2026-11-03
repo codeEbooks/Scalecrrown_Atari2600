@@ -1,0 +1,255 @@
+--- Symbol List (sorted by symbol)
+bank0_end                19e8                  
+bank1_end                3103                  
+bank2_end                5103                  
+bank3_end                7657                  
+bank4_end                9101                  
+bank5_end                b101                  
+bank6_end                d103                  
+bank7_end                f5ed                  
+bc0                      0096              (R )
+bc1                      0097              (R )
+bf_done                  f311              (R )
+bf_row                   f2f5              (R )
+bf_stone                 f310              (R )
+BITE_FRAMES              003c                  
+BITS                     f324              (R )
+bl_col                   f36c              (R )
+bl_done                  f377              (R )
+bl_left                  f356              (R )
+bl_set                   f365              (R )
+blade                    f32c              (R )
+BLADE_NUS                f378              (R )
+BOT_BLANK                0000              (R )
+box_free                 f2cb              (R )
+br                       0098              (R )
+buttons                  f157              (R )
+CB0_HI                   f3cb              (R )
+CB0_LO                   f3c5              (R )
+cbk                      009d              (R )
+clear                    f105              (R )
+CM_0                     f3dd              (R )
+CM_1                     f3fb              (R )
+CM_10                    f509              (R )
+CM_11                    f527              (R )
+CM_12                    f545              (R )
+CM_13                    f563              (R )
+CM_14                    f581              (R )
+CM_15                    f59f              (R )
+CM_2                     f419              (R )
+CM_3                     f437              (R )
+CM_4                     f455              (R )
+CM_5                     f473              (R )
+CM_6                     f491              (R )
+CM_7                     f4af              (R )
+CM_8                     f4cd              (R )
+CM_9                     f4eb              (R )
+CM_HI                    f5cd              (R )
+CM_LO                    f5bd              (R )
+cmap                     0092              (R )
+COLUBK                   0009              (R )
+COLUP0                   0006              (R )
+COLUPF                   0008              (R )
+CP_HI                    f3d7              (R )
+CP_LO                    f3d1              (R )
+cpf                      009f              (R )
+CTRLPF                   000a              (R )
+ENAM0                    001d              (R )
+END_FRAMES               003c                  
+ends_kernel              d100              (R )
+ENERGY_FULL              000c                  
+F4B0                     1ff4              (R )
+F4B1                     1ff5              (R )
+F4B2                     1ff6              (R )
+F4B3                     1ff7              (R )
+F4B4                     1ff8              (R )
+F4B5                     1ff9              (R )
+F4B6                     1ffa              (R )
+F4B7                     1ffb              (R )
+FIRST_PIXEL              0003              (R )
+fr_game                  f136                  
+fr_knight                f141                  
+fr_play                  f141              (R )
+fr_room                  f144              (R )
+frame_ready              f133                  
+frames                   0080              (R )
+GO_FRAMES                003c                  
+GRID                     0004                  
+GRP0                     001b              (R )
+H_FRAC                   0080                  
+H_INT                    0001                  
+hacc                     008b              (R )
+held                     0083              (R )
+HMM0                     0022                  
+HMOVE                    002a              (R )
+HMP0                     0020              (R )
+hu_black                 f382              (R )
+hu_p0                    f38c              (R )
+hud                      f37c              (R )
+idx                      00a3              (R )
+INPT4                    000c              (R )
+INTIM                    0284              (R )
+k_a0                     14e9                  
+k_a1                     1529                  
+k_a2                     1562                  
+k_a3                     159f                  
+k_b0                     150d                  
+k_b1                     1548                  
+k_b2                     1581                  
+k_b3                     15be                  
+k_end                    160d                  
+k_last                   15d9              (R )
+k_top                    14e7              (R )
+KC_HI                    f5e9              (R )
+KC_LO                    f5e5              (R )
+kcol                     009b              (R )
+kdir                     0088              (R )
+kdist                    008a              (R )
+kernel_done              f116              (R )
+KFG                      1100              (R )
+KFG_END                  14ba                  
+KG_HI                    f5e1              (R )
+KG_LO                    f5dd              (R )
+kgfx                     0099              (R )
+KHIT_FRAMES              001e                  
+KN_COL0                  14a2              (R )
+kn_down                  f29c              (R )
+kn_fire                  f21a              (R )
+kn_htry                  f261              (R )
+kn_left                  f256              (R )
+kn_pose                  f2b9              (R )
+kn_pose3                 f222              (R )
+kn_stand                 f2c8              (R )
+kn_thrust                f212                  
+kn_vert                  f27b              (R )
+kn_vtry                  f2a4              (R )
+kn_walk                  f227              (R )
+kn_walked                f270                  
+knight                   f212              (R )
+KNIGHT_H                 0018              (R )
+KNIGHT_W                 0008              (R )
+kpose                    0089              (R )
+KSTEP_FRAC               0051                  
+kx                       0086              (R )
+ky                       0087              (R )
+M_OFFSET                 0002              (R )
+main                     f11b              (R )
+moved                    008e              (R )
+new_game                 f172              (R )
+NUSIZ0                   0004              (R )
+nx                       0094              (R )
+ny                       0095              (R )
+OVER_TIM                 0023              (R )
+over_wait                f116              (R )
+PAL                      0000              (R )
+PARRY_FRAMES             000f                  
+PF0                      000d              (R )
+PF1                      000e              (R )
+PF2                      000f              (R )
+pl_div                   f203              (R )
+place                    f200              (R )
+pr_col                   f1db                  
+pr_hmove                 f1f5                  
+pr_kc                    f1bf                  
+prep_room                f1ae              (R )
+pressed                  0084              (R )
+ram_end                  00aa                  
+RC_1_0                   1627              (R )
+RC_2_0                   16c7              (R )
+RC_3_0                   1767              (R )
+RC_3_1                   1807                  
+RC_4_0                   18a7              (R )
+rc_done                  7276                  
+RC_FLAME                 1947              (R )
+REFP0                    000b              (R )
+RESM0                    0012                  
+RESMP0                   0028              (R )
+RESP0                    0010              (R )
+RESPAWN_FRAMES           00f0                  
+room                     0085              (R )
+room_copy                7100              (R )
+room_kernel              14ba              (R )
+room_state               f1a1              (R )
+RS_0                     7277              (R )
+RS_1                     72b3              (R )
+RS_10                    74cf              (R )
+RS_11                    750b              (R )
+RS_12                    7547              (R )
+RS_13                    7583              (R )
+RS_14                    75bf              (R )
+RS_15                    75fb              (R )
+RS_2                     72ef              (R )
+RS_3                     732b              (R )
+RS_4                     7367              (R )
+RS_5                     73a3              (R )
+RS_6                     73df              (R )
+RS_7                     741b              (R )
+RS_8                     7457              (R )
+RS_9                     7493              (R )
+RS_HI                    7647              (R )
+RS_LO                    7637              (R )
+rs_map                   f1a9                  
+SC_PF0                   0000              (R )
+SC_PF1                   0014              (R )
+SC_PF2                   0028              (R )
+SCHEME                   f3b5              (R )
+SCR                      1080              (R )
+screen                   0081              (R )
+SCW                      1000              (R )
+setup_room               f195              (R )
+shown                    0082              (R )
+sound                    b100              (R )
+SPIT_FIRST               0060                  
+start                    f100              (R )
+START_ROOM               0001                  
+START_TOP                0011                  
+START_X                  0049                  
+STRIDE                   0008                  
+STUN_FRAMES              001e                  
+su_copied                f1a0                  
+su_done                  f1a0              (R )
+SWCHA                    0280              (R )
+SWCHB                    0282              (R )
+swnus                    0090              (R )
+swres                    0091              (R )
+swx                      008f              (R )
+things                   9100              (R )
+throne_kernel            5100              (R )
+thrust                   008d              (R )
+THRUST_FRAMES            000c                  
+THRUST_POSE              0003                  
+TIM64T                   0296              (R )
+title_kernel             3100              (R )
+tmp                      00a8              (R )
+TO_COPY                  1fe6              (R )
+TO_ENDS                  1faa                  
+TO_MAIN                  1fcc              (R )
+TO_ROOM                  1fc0              (R )
+TO_SOUND                 1fd2                  
+TO_THINGS                1fb6                  
+TO_THRONE                1fb0                  
+TO_TITLE                 1fc6                  
+TOP_BLANK                0000              (R )
+TOP_MAX                  0087                  
+TOP_MIN                  0001                  
+trow                     00a4              (R )
+V_FRAC                   00cd                  
+V_INT                    0000                  
+vacc                     008c              (R )
+vb_end                   f14d              (R )
+VBLANK                   0001              (R )
+VBLANK_TIM               002c              (R )
+VEN_FRAC                 00de                  
+VEN_INT                  0001                  
+VIC_FRAMES               0078                  
+VSYNC                    0000              (R )
+WALK                     f3b1              (R )
+wall                     f312              (R )
+WSYNC                    0002              (R )
+X_MAX                    0095                  
+zbk                      00a1              (R )
+znpf0                    00a5              (R )
+znpf1                    00a6              (R )
+znpf2                    00a7              (R )
+zt                       00a2              (R )
+--- End of Symbol List.

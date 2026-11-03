@@ -1,0 +1,60 @@
+{
+ "id": "5a",
+ "step": 5,
+ "kind": "variant",
+ "title": "Slower serpents in the first level",
+ "text": "20 pixels a second instead of 38 (rules.py): CRAWL.",
+ "change": [
+  {
+   "file": "game/assets/rules.py",
+   "line": "SERPENT_PX_S = {1: 38, 2: 42, 3: 46, 4: 49}",
+   "becomes": "SERPENT_PX_S = {1: 20, 2: 42, 3: 46, 4: 49}"
+  }
+ ],
+ "frames": 220,
+ "until": "room 2: bitten, he flashes",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "SC+65",
+   "SC+60",
+   "SC+61",
+   "SC+62",
+   "SC+63",
+   "SC+66",
+   "zcoarse"
+  ]
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 1,
+   "var": "SC+65"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ]
+ },
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in SC+65, SC+60, SC+61, SC+62, SC+63, SC+66, zcoarse",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 10
+}

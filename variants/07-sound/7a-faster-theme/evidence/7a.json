@@ -1,0 +1,60 @@
+{
+ "id": "7a",
+ "step": 7,
+ "kind": "variant",
+ "title": "A faster theme",
+ "text": "140 beats a minute instead of 100 (score.py): the steps of STEPLEN are shorter.",
+ "change": [
+  {
+   "file": "game/assets/score.py",
+   "line": "BPM = 100",
+   "becomes": "BPM = 140"
+  }
+ ],
+ "frames": 12339,
+ "until": "SELECT in the game: the music again",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "mclock",
+   "mstep"
+  ],
+  "audio": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 1,
+   "var": "mclock"
+  },
+  "audio_differs": true,
+  "step_lines": [
+   262
+  ]
+ },
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in mclock, mstep",
+   "passed": true
+  },
+  {
+   "check": "audio",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 339
+}

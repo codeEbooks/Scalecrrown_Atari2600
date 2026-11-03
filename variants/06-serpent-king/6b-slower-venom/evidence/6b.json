@@ -1,0 +1,55 @@
+{
+ "id": "6b",
+ "step": 6,
+ "kind": "variant",
+ "title": "Slower venom",
+ "text": "90 pixels a second instead of 112 (rules.py): VEN_INT and VEN_FRAC.",
+ "change": [
+  {
+   "file": "game/assets/rules.py",
+   "line": "VENOM_PX_S = 112         # easier: 90",
+   "becomes": "VENOM_PX_S = 90          # easier: 90"
+  }
+ ],
+ "frames": 11746,
+ "until": "room 15: the venom from behind, 3 units",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "SC+71",
+   "SC+73"
+  ]
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 11698,
+   "var": "SC+73"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ]
+ },
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in SC+71, SC+73",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 318
+}

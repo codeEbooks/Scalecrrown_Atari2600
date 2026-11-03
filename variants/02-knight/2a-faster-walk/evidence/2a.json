@@ -1,0 +1,65 @@
+{
+ "id": "2a",
+ "step": 2,
+ "kind": "variant",
+ "title": "A faster walk",
+ "text": "90 pixels a second instead of 60 (rules.py): the whole part and the fraction a frame change for each television.",
+ "change": [
+  {
+   "file": "game/assets/rules.py",
+   "line": "WALK_PX_S = 60          # pixels a second, left and right",
+   "becomes": "WALK_PX_S = 90          # pixels a second, left and right"
+  }
+ ],
+ "frames": 204,
+ "until": "thrust right",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "kx",
+   "hacc",
+   "kdist",
+   "kpose"
+  ],
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 46,
+   "var": "hacc"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 3,
+  "pictures": 4
+ },
+ "picture_frame": 174,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in kx, hacc, kdist, kpose",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 13
+}

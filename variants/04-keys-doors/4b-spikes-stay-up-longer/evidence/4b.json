@@ -1,0 +1,55 @@
+{
+ "id": "4b",
+ "step": 4,
+ "kind": "variant",
+ "title": "The spikes stay up longer",
+ "text": "Two seconds up instead of one (rules.py): SPK_UP.",
+ "change": [
+  {
+   "file": "game/assets/rules.py",
+   "line": "SPIKES_UP_S = 1.0",
+   "becomes": "SPIKES_UP_S = 2.0"
+  }
+ ],
+ "frames": 411,
+ "until": "room 3: no key, the grate stays shut",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "spk",
+   "spup"
+  ]
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 229,
+   "var": "spk"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ]
+ },
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in spk, spup",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 12
+}

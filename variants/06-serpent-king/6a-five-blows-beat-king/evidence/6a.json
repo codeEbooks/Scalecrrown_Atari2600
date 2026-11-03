@@ -1,0 +1,63 @@
+{
+ "id": "6a",
+ "step": 6,
+ "kind": "variant",
+ "title": "Five blows beat the King",
+ "text": "KING_HITS 5 (rules.py), and a time between two spits for each blow (SPIT_S has one for each).",
+ "change": [
+  {
+   "file": "game/assets/rules.py",
+   "line": "KING_HITS = 10          # blows of the sword to beat him",
+   "becomes": "KING_HITS = 5           # blows of the sword to beat him"
+  },
+  {
+   "file": "game/assets/rules.py",
+   "line": "SPIT_S = (1.6, 1.5, 1.4, 1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7)",
+   "becomes": "SPIT_S = (1.6, 1.4, 1.2, 1.0, 0.8)"
+  }
+ ],
+ "frames": 12175,
+ "until": "room 15: the King beaten, the crown on the throne",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "SC+74",
+   "score",
+   "score+1",
+   "score+2",
+   "SC+70"
+  ]
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 11909,
+   "var": "SC+70"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ]
+ },
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in SC+74, score, score+1, score+2, SC+70",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 346
+}

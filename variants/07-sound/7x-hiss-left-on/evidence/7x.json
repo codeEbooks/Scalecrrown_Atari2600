@@ -1,0 +1,59 @@
+{
+ "id": "7x",
+ "step": 7,
+ "kind": "break",
+ "title": "A hiss left on",
+ "text": "Make ef_end return at once: the last volume of an effect stays in AUDV0, and its hiss goes on until the next effect.",
+ "change": [
+  {
+   "file": "game/src/sound.asm",
+   "line": "ef_end: lda     #0",
+   "becomes": "ef_end: rts"
+  }
+ ],
+ "frames": 857,
+ "until": "room 3 THE IRON STAIR, the grate closed",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "sfxi"
+  ],
+  "audio": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 224,
+   "var": "sfxi"
+  },
+  "audio_differs": true,
+  "step_lines": [
+   262
+  ]
+ },
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in sfxi",
+   "passed": true
+  },
+  {
+   "check": "audio",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 25
+}

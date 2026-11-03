@@ -1,0 +1,67 @@
+{
+ "id": "8x",
+ "step": 8,
+ "kind": "break",
+ "title": "The lament never starts",
+ "text": "Take out the $FF in smode at GAME OVER: the song changes, but the player does not see a new song and goes on reading the streams from where they were.",
+ "change": [
+  {
+   "file": "game/src/things.asm",
+   "line": "sta     smode           ; silences what played)",
+   "becomes": "(taken out)"
+  }
+ ],
+ "frames": 13711,
+ "until": "the GAME OVER screen",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "smode",
+   "mclock",
+   "mstep",
+   "vpos",
+   "vleft",
+   "venv",
+   "vins",
+   "vnote",
+   "sfxi"
+  ],
+  "audio": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 13619,
+   "var": "vpos"
+  },
+  "audio_differs": true,
+  "step_lines": [
+   262
+  ]
+ },
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in smode, mclock, mstep, vpos, vleft, venv, vins, vnote, sfxi",
+   "passed": true
+  },
+  {
+   "check": "audio",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 382
+}

@@ -1,0 +1,7 @@
+# Written by the tests and their tools (the reports, the pictures, the
+# recordings). The reports of the experiments are kept in their
+# folders.
+/evidence/
+__pycache__/
+*.py[cod]
+*.log

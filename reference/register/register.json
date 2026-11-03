@@ -1,0 +1,298 @@
+{
+ "chapters": {
+  "1": "Your workshop",
+  "2": "The 6507, the memory and the cartridge",
+  "3": "Racing the beam: the frame",
+  "4": "The playfield and the first room",
+  "5": "The knight",
+  "6": "The dungeon and the HUD",
+  "7": "Keys, doors and treasure",
+  "8": "The serpents",
+  "9": "The sword and the damage",
+  "10": "The throne room",
+  "11": "The Serpent King",
+  "12": "The TIA and the music",
+  "13": "Effects and sound modes",
+  "14": "States, title and end screens",
+  "15": "The hunt: how hard the game is",
+  "16": "Reading and checking the game",
+  "17": "Glossary and index"
+ },
+ "steps": {
+  "1": {
+   "ntsc": {
+    "instructions": 673,
+    "new": 616,
+    "seam": 57,
+    "lines": 235,
+    "new_lines": 207,
+    "seam_lines": 35
+   },
+   "pal": {
+    "instructions": 681,
+    "new": 624,
+    "seam": 57,
+    "lines": 243,
+    "new_lines": 215,
+    "seam_lines": 35
+   }
+  },
+  "2": {
+   "ntsc": {
+    "instructions": 925,
+    "new": 244,
+    "seam": 65,
+    "lines": 484,
+    "new_lines": 244,
+    "seam_lines": 40
+   },
+   "pal": {
+    "instructions": 933,
+    "new": 244,
+    "seam": 65,
+    "lines": 492,
+    "new_lines": 244,
+    "seam_lines": 40
+   }
+  },
+  "3": {
+   "ntsc": {
+    "instructions": 1162,
+    "new": 246,
+    "seam": 56,
+    "lines": 696,
+    "new_lines": 221,
+    "seam_lines": 31
+   },
+   "pal": {
+    "instructions": 1170,
+    "new": 246,
+    "seam": 56,
+    "lines": 704,
+    "new_lines": 221,
+    "seam_lines": 31
+   }
+  },
+  "4": {
+   "ntsc": {
+    "instructions": 1362,
+    "new": 242,
+    "seam": 14,
+    "lines": 876,
+    "new_lines": 198,
+    "seam_lines": 14
+   },
+   "pal": {
+    "instructions": 1370,
+    "new": 242,
+    "seam": 14,
+    "lines": 884,
+    "new_lines": 198,
+    "seam_lines": 14
+   }
+  },
+  "5": {
+   "ntsc": {
+    "instructions": 1722,
+    "new": 357,
+    "seam": 17,
+    "lines": 1236,
+    "new_lines": 357,
+    "seam_lines": 17
+   },
+   "pal": {
+    "instructions": 1730,
+    "new": 357,
+    "seam": 17,
+    "lines": 1244,
+    "new_lines": 357,
+    "seam_lines": 17
+   }
+  },
+  "6": {
+   "ntsc": {
+    "instructions": 2282,
+    "new": 564,
+    "seam": 13,
+    "lines": 1677,
+    "new_lines": 445,
+    "seam_lines": 13
+   },
+   "pal": {
+    "instructions": 2294,
+    "new": 568,
+    "seam": 13,
+    "lines": 1689,
+    "new_lines": 449,
+    "seam_lines": 13
+   }
+  },
+  "7": {
+   "ntsc": {
+    "instructions": 2456,
+    "new": 164,
+    "seam": 23,
+    "lines": 1851,
+    "new_lines": 164,
+    "seam_lines": 23
+   },
+   "pal": {
+    "instructions": 2468,
+    "new": 164,
+    "seam": 23,
+    "lines": 1863,
+    "new_lines": 164,
+    "seam_lines": 23
+   }
+  },
+  "8": {
+   "ntsc": {
+    "instructions": 3392,
+    "new": 948,
+    "seam": 11,
+    "lines": 2167,
+    "new_lines": 328,
+    "seam_lines": 11
+   },
+   "pal": {
+    "instructions": 3421,
+    "new": 965,
+    "seam": 11,
+    "lines": 2195,
+    "new_lines": 344,
+    "seam_lines": 11
+   }
+  },
+  "9": {
+   "ntsc": {
+    "instructions": 3519,
+    "new": 138,
+    "seam": 0,
+    "lines": 2294,
+    "new_lines": 138,
+    "seam_lines": 0
+   },
+   "pal": {
+    "instructions": 3548,
+    "new": 138,
+    "seam": 0,
+    "lines": 2322,
+    "new_lines": 138,
+    "seam_lines": 0
+   }
+  }
+ },
+ "tvs": {
+  "ntsc": {
+   "instructions": 3519,
+   "by_step": {
+    "1": 616,
+    "2": 244,
+    "3": 246,
+    "4": 242,
+    "5": 357,
+    "6": 564,
+    "7": 164,
+    "8": 948,
+    "9": 138
+   },
+   "by_chapter": {
+    "10": 332,
+    "11": 232,
+    "12": 129,
+    "13": 35,
+    "14": 948,
+    "15": 138,
+    "2": 192,
+    "3": 80,
+    "4": 344,
+    "5": 244,
+    "6": 246,
+    "7": 242,
+    "8": 277,
+    "9": 80
+   },
+   "by_file": {
+    "dungeon.asm": 198,
+    "ends_kernel.asm": 120,
+    "hud.asm": 130,
+    "knight.asm": 236,
+    "main.asm": 615,
+    "room_kernel.asm": 344,
+    "scalecrown.asm": 192,
+    "sound.asm": 129,
+    "things.asm": 595,
+    "throne_kernel.asm": 238,
+    "title_kernel.asm": 722
+   },
+   "ran": 3360,
+   "route_simulator": 3350,
+   "route_stella": 3350,
+   "never": {
+    "tail": 158,
+    "sprint2": 1
+   },
+   "disagree": [],
+   "disagree_count": 0,
+   "unexplained": [],
+   "unexplained_count": 0,
+   "pass": true
+  },
+  "pal": {
+   "instructions": 3548,
+   "by_step": {
+    "1": 624,
+    "2": 244,
+    "3": 246,
+    "4": 242,
+    "5": 357,
+    "6": 568,
+    "7": 164,
+    "8": 965,
+    "9": 138
+   },
+   "by_chapter": {
+    "10": 336,
+    "11": 232,
+    "12": 129,
+    "13": 35,
+    "14": 965,
+    "15": 138,
+    "2": 192,
+    "3": 80,
+    "4": 352,
+    "5": 244,
+    "6": 246,
+    "7": 242,
+    "8": 277,
+    "9": 80
+   },
+   "by_file": {
+    "dungeon.asm": 198,
+    "ends_kernel.asm": 128,
+    "hud.asm": 134,
+    "knight.asm": 236,
+    "main.asm": 615,
+    "room_kernel.asm": 348,
+    "scalecrown.asm": 192,
+    "sound.asm": 129,
+    "things.asm": 595,
+    "throne_kernel.asm": 242,
+    "title_kernel.asm": 731
+   },
+   "ran": 3390,
+   "route_simulator": 3380,
+   "route_stella": 3380,
+   "never": {
+    "tail": 158
+   },
+   "disagree": [],
+   "disagree_count": 0,
+   "unexplained": [],
+   "unexplained_count": 0,
+   "pass": true
+  }
+ },
+ "seams": 66,
+ "pass": true
+}

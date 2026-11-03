@@ -1,0 +1,55 @@
+{
+ "id": "9b",
+ "step": 9,
+ "kind": "variant",
+ "title": "They come back sooner",
+ "text": "Two seconds instead of four after a serpent dies (rules.py): RESPAWN_FRAMES.",
+ "change": [
+  {
+   "file": "game/assets/rules.py",
+   "line": "RESPAWN_S = 4.0",
+   "becomes": "RESPAWN_S = 2.0"
+  }
+ ],
+ "frames": 1217,
+ "until": "room 2: the serpent back, at the end of its path farther from him",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "SC+75",
+   "SC+76"
+  ]
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 945,
+   "var": "SC+75"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ]
+ },
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in SC+75, SC+76",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 38
+}

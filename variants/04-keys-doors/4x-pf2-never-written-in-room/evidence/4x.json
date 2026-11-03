@@ -1,0 +1,57 @@
+{
+ "id": "4x",
+ "step": 4,
+ "kind": "break",
+ "title": "PF2 never written in the room",
+ "text": "Take out the store of PF2 at the end of line B3, the only one in the room since player 1 came into the kernel: every course keeps the PF2 of the first, and the middle of the room is wrong.",
+ "change": [
+  {
+   "file": "game/src/room_kernel.asm",
+   "line": "sty     PF2             ; 61+ after the right half",
+   "becomes": "(taken out)"
+  }
+ ],
+ "frames": 983,
+ "until": "room 0: the chest open, the key, 500 points",
+ "claims": {
+  "timing": true,
+  "ram": "same",
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": null,
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 5,
+  "pictures": 5
+ },
+ "picture_frame": 953,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram the same",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 34
+}

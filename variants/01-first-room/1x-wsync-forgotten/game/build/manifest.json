@@ -1,0 +1,39 @@
+{
+ "dasm": "DASM 2.20.14.1",
+ "cartridges": {
+  "scalecrown_ntsc": {
+   "flags": [],
+   "bytes": 32768,
+   "free": {
+    "bank0": 2124,
+    "bank1": 3751,
+    "bank2": 3751,
+    "bank3": 2387,
+    "bank4": 3753,
+    "bank5": 3753,
+    "bank6": 3751,
+    "bank7": 3493
+   },
+   "ram_end": 153,
+   "sha256": "21bacd886bdb419e77c0f204d794b584299106d99fc2d89301c8ed46e860eca5"
+  },
+  "scalecrown_pal": {
+   "flags": [
+    "-DPAL=1"
+   ],
+   "bytes": 32768,
+   "free": {
+    "bank0": 2117,
+    "bank1": 3751,
+    "bank2": 3751,
+    "bank3": 2387,
+    "bank4": 3753,
+    "bank5": 3753,
+    "bank6": 3751,
+    "bank7": 3486
+   },
+   "ram_end": 153,
+   "sha256": "7f7c7742746407d7272bb0752359e4768824705d07d112ae602b270cd6bb9100"
+  }
+ }
+}

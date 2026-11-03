@@ -1,0 +1,67 @@
+file,master line,routine,steps,chapter,instruction,tv
+hud.asm,31,hu_top,1-2,4,ldy #25,ntsc+pal
+hud.asm,33,hu_black,1-2,4,sta WSYNC,ntsc+pal
+hud.asm,34,hu_black,1-2,4,dey,ntsc+pal
+hud.asm,35,hu_black,1-2,4,bne hu_black,ntsc+pal
+hud.asm,84,hu_p0,1-3,4,sta WSYNC,ntsc+pal
+hud.asm,109,hu_p0,3-3,6,sta GRP1,ntsc+pal
+knight.asm,73,kn_walk,2-2,5,bcs kn_vert,ntsc+pal
+knight.asm,82,kn_left,2-2,5,bcc kn_vert,ntsc+pal
+knight.asm,114,kn_vert,2-2,5,bcc kn_pose,ntsc+pal
+knight.asm,121,kn_down,2-2,5,bcs kn_pose,ntsc+pal
+main.asm,39,clear,1-7,3,jsr new_game,ntsc+pal
+main.asm,91,fr_game,7-7,13,lda pressed,ntsc+pal
+main.asm,92,fr_game,7-7,13,and #$02,ntsc+pal
+main.asm,93,fr_game,7-7,13,beq fr_reset,ntsc+pal
+main.asm,94,fr_game,7-7,13,ldx mode,ntsc+pal
+main.asm,95,fr_game,7-7,13,inx,ntsc+pal
+main.asm,96,fr_game,7-7,13,cpx #3,ntsc+pal
+main.asm,97,fr_game,7-7,13,bcc fr_mode,ntsc+pal
+main.asm,98,fr_game,7-7,13,ldx #0,ntsc+pal
+main.asm,100,fr_mode,7-7,13,stx mode,ntsc+pal
+main.asm,116,fr_over,5-5,9,lda over,ntsc+pal
+main.asm,289,new_game,1-2,3,rts,ntsc+pal
+main.asm,327,su_copied,5-8,8,lda #3,ntsc+pal
+main.asm,423,rs_map,5-5,8,ldx #4,ntsc+pal
+room_kernel.asm,40,room_kernel,1-3,4,sta znpf2,ntsc+pal
+room_kernel.asm,92,k_b0,1-3,4,stx GRP0,ntsc+pal
+room_kernel.asm,94,k_b0,1-3,4,sty COLUP0,ntsc+pal
+room_kernel.asm,96,k_b0,2-3,5,sty ENAM0,ntsc+pal
+room_kernel.asm,105,k_b1,1-4,4,"lda (cbk),y",ntsc+pal
+room_kernel.asm,106,k_b1,1-4,4,sta zbk,ntsc+pal
+room_kernel.asm,107,k_b1,1-4,4,"lda (cpf),y",ntsc+pal
+room_kernel.asm,108,k_b1,1-4,4,sta zt,ntsc+pal
+room_kernel.asm,109,k_b1,1-4,4,"lda (kgfx),y",ntsc+pal
+room_kernel.asm,110,k_b1,1-4,4,tax,ntsc+pal
+room_kernel.asm,111,k_b1,4-4,7,"lda (sgfx),y",ntsc+pal
+room_kernel.asm,112,k_b1,1-4,4,ldy zt,ntsc+pal
+room_kernel.asm,118,k_a1,1-3,4,stx GRP0,ntsc+pal
+room_kernel.asm,120,k_a1,1-3,4,sty COLUPF,ntsc+pal
+room_kernel.asm,123,k_a1,1-3,4,sta COLUBK,ntsc+pal
+room_kernel.asm,130,k_a0,1-3,4,stx GRP0,ntsc+pal
+room_kernel.asm,133,k_a0,1-3,4,sty COLUPF,ntsc+pal
+room_kernel.asm,136,k_a0,1-3,4,sta COLUBK,ntsc+pal
+room_kernel.asm,139,k_a0,1-3,4,sta PF0,ntsc+pal
+room_kernel.asm,142,k_a0,1-3,4,sta PF1,ntsc+pal
+room_kernel.asm,143,k_a0,1-3,4,lda znpf2,ntsc+pal
+room_kernel.asm,144,k_a0,1-3,4,sta PF2,ntsc+pal
+room_kernel.asm,147,k_a0,1-4,4,sta WSYNC,ntsc+pal
+room_kernel.asm,198,k_last,1-3,4,stx GRP0,ntsc+pal
+room_kernel.asm,207,k_end,1-2,4,sta COLUBK,ntsc+pal
+scalecrown.asm,357,title_kernel,1-7,2,jmp TO_MAIN,ntsc+pal
+scalecrown.asm,371,throne_kernel,1-5,2,jmp TO_MAIN,ntsc+pal
+scalecrown.asm,385,things,1-3,2,rts,ntsc+pal
+scalecrown.asm,393,sound,1-6,2,rts,ntsc+pal
+scalecrown.asm,401,ends_kernel,1-7,2,jmp TO_MAIN,ntsc+pal
+things.asm,63,things,5-5,8,lda over,ntsc+pal
+things.asm,128,th_guards,5-5,8,beq th_thing,ntsc+pal
+things.asm,255,gu_one,5-8,8,beq gu_next,ntsc+pal
+things.asm,368,ga_dist,5-8,8,"lda GBIT,y",ntsc+pal
+things.asm,369,ga_dist,5-8,8,eor #$FF,ntsc+pal
+things.asm,370,ga_dist,5-8,8,and SCR+SC_LIVE,ntsc+pal
+things.asm,371,ga_dist,5-8,8,sta SCW+SC_LIVE,ntsc+pal
+things.asm,372,ga_dist,7-8,13,lda #SFX_KILL,ntsc+pal
+things.asm,373,ga_dist,7-8,13,sta sfxreq,ntsc+pal
+things.asm,374,ga_dist,5-8,8,lda #SERPENT_BCD,ntsc+pal
+things.asm,375,ga_dist,5-8,8,jmp points,ntsc+pal
+things.asm,607,tr_blow,6-8,11,lda #KING_H+1,ntsc+pal

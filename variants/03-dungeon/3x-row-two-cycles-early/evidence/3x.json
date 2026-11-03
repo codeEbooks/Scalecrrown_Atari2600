@@ -1,0 +1,57 @@
+{
+ "id": "3x",
+ "step": 3,
+ "kind": "break",
+ "title": "The 48-pixel line three cycles early",
+ "text": "Take out the NOP of HUD48: the last four writes of each line come three cycles before the beam leaves the copies they change, and the digits break up.",
+ "change": [
+  {
+   "file": "game/src/hud.asm",
+   "line": "nop",
+   "becomes": "(taken out)"
+  }
+ ],
+ "frames": 813,
+ "until": "room 0 RUBBLE HALL, from the west",
+ "claims": {
+  "timing": true,
+  "ram": "same",
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": null,
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 12,
+  "pictures": 12
+ },
+ "picture_frame": 783,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram the same",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 25
+}

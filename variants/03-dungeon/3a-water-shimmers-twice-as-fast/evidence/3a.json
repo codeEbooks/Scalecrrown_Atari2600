@@ -1,0 +1,57 @@
+{
+ "id": "3a",
+ "step": 3,
+ "kind": "variant",
+ "title": "The water shimmers twice as fast",
+ "text": "prep_room takes bit 2 of the frame counter instead of bit 3 to choose the colour table of the water.",
+ "change": [
+  {
+   "file": "game/src/main.asm",
+   "line": "and     #8",
+   "becomes": "and     #4"
+  }
+ ],
+ "frames": 1751,
+ "until": "room 9 COLD LANDING, from the south",
+ "claims": {
+  "timing": true,
+  "ram": "same",
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": null,
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 1,
+  "pictures": 22
+ },
+ "picture_frame": 1721,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram the same",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 53
+}

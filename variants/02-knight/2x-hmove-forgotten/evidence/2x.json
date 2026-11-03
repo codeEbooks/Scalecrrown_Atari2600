@@ -1,0 +1,57 @@
+{
+ "id": "2x",
+ "step": 2,
+ "kind": "break",
+ "title": "The HMOVE forgotten",
+ "text": "Take out the HMOVE of HUD line 28: RESP0 puts Sir Roderick at the coarse column only, 15 pixels at a time; the fine move never comes.",
+ "change": [
+  {
+   "file": "game/src/hud.asm",
+   "line": "sta     HMOVE           ;  2",
+   "becomes": "(taken out)"
+  }
+ ],
+ "frames": 190,
+ "until": "walking right",
+ "claims": {
+  "timing": true,
+  "ram": "same",
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": null,
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 3,
+  "pictures": 3
+ },
+ "picture_frame": 160,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram the same",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 7
+}

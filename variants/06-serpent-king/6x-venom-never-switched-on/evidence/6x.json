@@ -1,0 +1,57 @@
+{
+ "id": "6x",
+ "step": 6,
+ "kind": "break",
+ "title": "The venom never switched on",
+ "text": "Store the venom's bit at $2D, an address the TIA does not use, instead of ENAM1 ($1E), in the lines B of the throne kernel: the same cycles, the venom flies and wounds in the logic, but nothing draws it. (Taking the store out would also bring every store after it three cycles earlier: the PF2 at the end of the line comes at cycle 59, which the tests forbid.)",
+ "change": [
+  {
+   "file": "game/src/throne_kernel.asm",
+   "line": "sta     ENAM1           ; 20 the venom: bit 1",
+   "becomes": "sta     $2D             ; 20 the venom: bit 1"
+  }
+ ],
+ "frames": 11728,
+ "until": "room 15: the King spits",
+ "claims": {
+  "timing": true,
+  "ram": "same",
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": null,
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 1,
+  "pictures": 29
+ },
+ "picture_frame": 11698,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram the same",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 427
+}

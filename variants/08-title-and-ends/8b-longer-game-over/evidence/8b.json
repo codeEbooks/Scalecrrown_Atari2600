@@ -1,0 +1,63 @@
+{
+ "id": "8b",
+ "step": 8,
+ "kind": "variant",
+ "title": "A longer GAME OVER",
+ "text": "Everything stops for two seconds instead of one before the end screen (rules.py): GO_FRAMES.",
+ "change": [
+  {
+   "file": "game/assets/rules.py",
+   "line": "GAME_OVER_S = 1.0",
+   "becomes": "GAME_OVER_S = 2.0"
+  }
+ ],
+ "frames": 13711,
+ "until": "the GAME OVER screen",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "over",
+   "screen"
+  ],
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 13679,
+   "var": "screen"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 1,
+  "pictures": 56
+ },
+ "picture_frame": 13681,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in over, screen",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 510
+}

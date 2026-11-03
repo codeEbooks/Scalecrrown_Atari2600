@@ -1,0 +1,60 @@
+{
+ "id": "9a",
+ "step": 9,
+ "kind": "variant",
+ "title": "A gentler sprint",
+ "text": "The serpents that chase him sprint a little slower (rules.py): SPRI and SPRF.",
+ "change": [
+  {
+   "file": "game/assets/rules.py",
+   "line": "SPRINT_PX_S = {1: 50, 2: 52, 3: 54, 4: 56}",
+   "becomes": "SPRINT_PX_S = {1: 40, 2: 44, 3: 48, 4: 50}"
+  }
+ ],
+ "frames": 977,
+ "until": "room 2: the serpent killed, 100 points",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "SC+77",
+   "SC+60",
+   "SC+61",
+   "SC+62",
+   "SC+63",
+   "SC+66",
+   "zcoarse"
+  ]
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 131,
+   "var": "SC+77"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ]
+ },
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in SC+77, SC+60, SC+61, SC+62, SC+63, SC+66, zcoarse",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 38
+}

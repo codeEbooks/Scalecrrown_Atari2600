@@ -1,0 +1,64 @@
+{
+ "id": "4a",
+ "step": 4,
+ "kind": "variant",
+ "title": "Richer chests",
+ "text": "1 500 points for a chest (rules.py): CHEST_BCD.",
+ "change": [
+  {
+   "file": "game/assets/rules.py",
+   "line": "CHEST_POINTS = 500",
+   "becomes": "CHEST_POINTS = 1500"
+  }
+ ],
+ "frames": 983,
+ "until": "room 0: the chest open, the key, 500 points",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "score",
+   "score+1",
+   "score+2"
+  ],
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 949,
+   "var": "score+1"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 1,
+  "pictures": 5
+ },
+ "picture_frame": 953,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in score, score+1, score+2",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 39
+}

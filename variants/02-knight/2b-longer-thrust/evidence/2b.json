@@ -1,0 +1,54 @@
+{
+ "id": "2b",
+ "step": 2,
+ "kind": "variant",
+ "title": "A longer thrust",
+ "text": "0.4 seconds instead of 0.2 (rules.py): THRUST_FRAMES.",
+ "change": [
+  {
+   "file": "game/assets/rules.py",
+   "line": "THRUST_S = 0.2          # the thrust of the sword, seconds",
+   "becomes": "THRUST_S = 0.4          # the thrust of the sword, seconds"
+  }
+ ],
+ "frames": 204,
+ "until": "thrust right",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "thrust"
+  ]
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 171,
+   "var": "thrust"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ]
+ },
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in thrust",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 5
+}

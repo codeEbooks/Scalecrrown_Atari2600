@@ -1,0 +1,62 @@
+{
+ "id": "1b",
+ "step": 1,
+ "kind": "variant",
+ "title": "Sir Roderick comes in further west",
+ "text": "The column where he starts, in dungeon.py: new_game takes it from START_X.",
+ "change": [
+  {
+   "file": "game/assets/dungeon.py",
+   "line": "START = dict(room=1, x=73, top=17, facing=\"right\")",
+   "becomes": "START = dict(room=1, x=41, top=17, facing=\"right\")"
+  }
+ ],
+ "frames": 48,
+ "until": "40 frames later: nothing moves",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "kx"
+  ],
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 1,
+   "var": "kx"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 2,
+  "pictures": 2
+ },
+ "picture_frame": 44,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in kx",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 2
+}

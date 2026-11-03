@@ -1,0 +1,55 @@
+{
+ "id": "8a",
+ "step": 8,
+ "kind": "variant",
+ "title": "The end screen waits longer for the button",
+ "text": "Two seconds instead of one (rules.py): END_FRAMES.",
+ "change": [
+  {
+   "file": "game/assets/rules.py",
+   "line": "END_S = 1.0",
+   "becomes": "END_S = 2.0"
+  }
+ ],
+ "frames": 13034,
+ "until": "back to the title after VICTORY",
+ "claims": {
+  "timing": true,
+  "ram": [
+   "won",
+   "screen"
+  ]
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": {
+   "frame": 12996,
+   "var": "won"
+  },
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ]
+ },
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram first in won, screen",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 364
+}

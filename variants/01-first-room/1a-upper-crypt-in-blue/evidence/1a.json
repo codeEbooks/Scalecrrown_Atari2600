@@ -1,0 +1,57 @@
+{
+ "id": "1a",
+ "step": 1,
+ "kind": "variant",
+ "title": "The Upper Crypt in blue",
+ "text": "The floor of level 1 takes another hue: one number in rooms.py, and build_assets.py writes new colour tables; the kernel does not change.",
+ "change": [
+  {
+   "file": "game/assets/rooms.py",
+   "line": "floor=0xC0, floor_lum=(0, 6), light=80, shimmer=False,",
+   "becomes": "floor=0x80, floor_lum=(0, 6), light=80, shimmer=False,"
+  }
+ ],
+ "frames": 48,
+ "until": "40 frames later: nothing moves",
+ "claims": {
+  "timing": true,
+  "ram": "same",
+  "picture": true
+ },
+ "builds": true,
+ "facts": {
+  "lines": [
+   262
+  ],
+  "vsync": [
+   228
+  ],
+  "window_errors": 0,
+  "first_window_error": [],
+  "seam_wrong": 0,
+  "first_ram_difference": null,
+  "audio_differs": false,
+  "step_lines": [
+   262
+  ],
+  "pictures_differ": 2,
+  "pictures": 2
+ },
+ "picture_frame": 44,
+ "checks": [
+  {
+   "check": "timing",
+   "passed": true
+  },
+  {
+   "check": "ram the same",
+   "passed": true
+  },
+  {
+   "check": "picture",
+   "passed": true
+  }
+ ],
+ "pass": true,
+ "seconds": 4
+}
